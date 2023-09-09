@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_drybox_sensor/templates *
+recursive-include octoprint_drybox_sensor/translations *
+recursive-include octoprint_drybox_sensor/static *
