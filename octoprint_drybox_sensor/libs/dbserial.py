@@ -1,13 +1,16 @@
 import os
 import serial
 import threading
+import time
 
 class DBSerial(threading.Thread):
 
-  def __init__(self, port, logger = None):
+  def __init__(self, port, dbpi):
     threading.Thread.__init__(self)
     self._port = port
-    self.logger = logger
+    self.logger = dbpi._logger
+    self.pm = dbpi._plugin_manager
+    self.dbpi = dbpi
     self.temp = 0
     self.humid = 0
     self.ph = None
@@ -26,13 +29,18 @@ class DBSerial(threading.Thread):
     
   def log(self, txt):
     if self.logger is not None:
-      self.logger.info(" ::DBSerial:: ", txt)
+      self.logger.info(" ::DBSerial:: %s" %txt)
     else:
       print(txt)
 
   def open(self):
     try:
-      self.ph = serial.Serial(self._port)
+      if self._port == "debug":
+        self.ph = "debug"
+        self.log("DEBUG endpoint is being used")
+      else:
+        self.ph = serial.Serial(self._port)
+        self.log("Opened the port : %s" %self._port)
     except Exception as e:
       self.log("Failed to open sensor port")
       self.ph = None
@@ -40,28 +48,45 @@ class DBSerial(threading.Thread):
     return self.ph
     
   def close(self):
-    self.ph.close()
+    if self.ph != "debug":
+      self.ph.close()
+
+  def readData(self):
+    if self.ph == "debug":
+      time.sleep(3)
+      return "T:25.00C,H:25.00%\r\n"
+    self.ph.readline().decode()
 
   def run(self):
-    self.done = False
-    if self.open() is not False:
-      while not self.done:
-        dstr = self.ph.readline().decode()
-        if dstr != "":
-          try:
-            data = dstr.strip().split(",")
-            self.temp = float(data[0][2:7])
-            self.humid = float(data[1][2:7])
-          except:
-            self.log("Failed to parse data from %s" %dstr)
+    try:
+      self.done = False
+      if self.open() is not False:
+        self.log("Starting Serial read thread")
+        while not self.done:
+          #self.log("Reading data in thread")
+          dstr = self.readData()
+          if dstr != "":
+            try:
+              data = dstr.strip().split(",")
+              self.temp = float(data[0][2:7])
+              self.humid = float(data[1][2:7])
+              self.log("SendingPM message %0.2f %0.2f" %(self.temp,self.humid))
+              self.pm.send_plugin_message(
+                self.dbpi._identifier, dict(temp=self.temp, humid=self.humid)
+              )
+            except Exception as e:
+              self.log("Failed to parse data from %s : %s" %(dstr,e))
+    except KeyboardInterrupt:
+      self.log("Caught a ctrl-C... shutdown time")
+      self.done=True
+      self.close()
 
   def stop(self):
     self.done = True
         
 
 if __name__ == "__main__":
-  import time
-  dbs = DBSerial('/dev/ttyACM0')
+  dbs = DBSerial('debug')
 
   dbs.start()
 
@@ -75,4 +100,6 @@ if __name__ == "__main__":
     except Exception as e:
       print("Something went wrong : %s" %e)
       break
-    
+  print("Waiting for thread to stop")
+  dbs.stop()
+  dbs.join()

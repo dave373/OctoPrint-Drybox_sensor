@@ -1,1 +1,11 @@
 /* TODO: Have your plugin's CSS files generated to here. */
+
+.drybox_warn {
+  color: orange;
+  font-weight: bolder;
+}
+
+.drybox_error {
+  color: red;
+  font-weight: bolder;
+}

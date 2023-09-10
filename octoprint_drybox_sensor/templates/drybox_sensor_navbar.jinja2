@@ -1,1 +1,5 @@
-<b>DryBox ({{ plugin_drybox_sensor_port }})<br/>Temp=XX&degC Hum:XX%</b>
+<div class="navbar-text">
+  <b>DryBox:<span id="drybox-port" data-bind="attr: {html: settings.settings.plugins.drybox_sensor.port}"></span></b>
+  <span id="drybox-temp" data-bind="attr: {title: 'Drybox Environment', html: dryboxTemp()">temp</span>
+  <span id="drybox-humid" data-bind="attr: {title: 'Drybox Environment', html: dryboxHumid()">humid</span>
+</div>
