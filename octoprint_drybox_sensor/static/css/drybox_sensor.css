@@ -9,3 +9,18 @@
   color: red;
   font-weight: bolder;
 }
+
+#drybox-history {
+  float: left;
+  position: absolute;
+  background-color: white;
+  color: black;
+  border: 2px black solid;
+  padding: 1em;
+  left: -10em;
+  z-index: 20;
+}
+
+.drybox_histlist li{
+  list-style-type: none;
+}

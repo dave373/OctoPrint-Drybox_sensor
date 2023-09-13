@@ -1,5 +1,6 @@
-<div class="navbar-text">
+<div class="navbar-text" onclick='$("#drybox-history").toggle()'>
   <b>DryBox:<span id="drybox-port" data-bind="attr: {html: settings.settings.plugins.drybox_sensor.port}"></span></b>
   <span id="drybox-temp" data-bind="attr: {title: 'Drybox Environment', html: dryboxTemp()">temp</span>
   <span id="drybox-humid" data-bind="attr: {title: 'Drybox Environment', html: dryboxHumid()">humid</span>
+  <div id="drybox-history" style="display:none; data-bind="attr: {title: 'Drybox History', html: dryboxHistory()"></div>
 </div>

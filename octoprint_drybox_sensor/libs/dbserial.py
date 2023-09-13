@@ -1,4 +1,3 @@
-import os
 import serial
 import threading
 import time
@@ -14,6 +13,9 @@ class DBSerial(threading.Thread):
     self.temp = 0
     self.humid = 0
     self.ph = None
+    self.history = []
+    self.hist_length = 10
+    self.hist_delay = 86400 #24h
 
   def getTemp(self):
     if self.ph is not None:
@@ -70,20 +72,32 @@ class DBSerial(threading.Thread):
               data = dstr.strip().split(",")
               self.temp = float(data[0][2:7])
               self.humid = float(data[1][2:7])
+              self.addHistData()
               self.log("SendingPM message %0.2f %0.2f" %(self.temp,self.humid))
               self.pm.send_plugin_message(
-                self.dbpi._identifier, dict(temp=self.temp, humid=self.humid)
+                self.dbpi._identifier, dict(temp=self.temp, humid=self.humid, history=self.history)
               )
             except Exception as e:
               self.log("Failed to parse data from %s : %s" %(dstr,e))
     except KeyboardInterrupt:
       self.log("Caught a ctrl-C... shutdown time")
       self.done=True
-      self.close()
+      self.close() 
 
   def stop(self):
     self.done = True
-        
+
+  def addHistData(self):
+    if len(self.history) == 0:
+      # initial entry
+      self.history.append({"ts":time.time(),"temp":self.temp,"humid":self.humid})
+    else:
+      lastData = self.history[-1]["ts"]
+      if (lastData + self.hist_delay) < time.time():
+        # Store the new value
+        self.history.append({"ts":time.time(),"temp":self.temp,"humid":self.humid})
+      if len(self.history) > self.hist_length:
+        self.history.pop(0)
 
 if __name__ == "__main__":
   dbs = DBSerial('debug')

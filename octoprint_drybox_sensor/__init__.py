@@ -11,18 +11,19 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
         self._logger.info("Drybox sensor using port:%s" %self._settings.get(["port"]))
         self.serialNode = DBSerial(self._settings.get(["port"]),self)
         self.serialNode.start()
-        #self.interval = 5
-        #self._datatimer = None
-        #self._logger.info("Starting timer")
-        #self.start_drybox_timer(self.interval)
         self._logger.info("Finished startup")
 
     def on_shutdown(self):
         self.serialNode.stop()
 
-      
+    
     def get_settings_defaults(self):
-        return dict(port="debug",humid_warn=25,humid_error=30)
+        return dict(port="debug",
+                    humid_warn=25,
+                    humid_error=30,
+                    hist_length=10,
+                    hist_delay="24h"
+                    )
     
     def on_settings_save(self, data):
         diff = super(DryBoxSensorPlugin, self).on_settings_save(data)
@@ -32,6 +33,18 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
             self.serialNode = self.serialNode = DBSerial(data["port"],self)
             self.serialNode.start()
             self._logger.info("Serial reader restarted with new port")
+        if "hist_length" in data:
+            self.serialNode.hist_length = int(data["hist_length"])
+        if "hist_delay" in data:
+            if "m" in data["hist_delay"]:
+                self.serialNode.hist_delay = int(data["hist_delay"].strip('m')) * 60
+            elif "h" in data["hist_delay"]:
+                self.serialNode.hist_delay = int(data["hist_delay"].strip('m')) * 3600
+            else:
+                self.serialNode.hist_delay = int(data["hist_delay"].strip('s'))
+            
+        self._plugin_manager.send_plugin_message(self._identifier, dict())
+        return diff
 
     def get_template_vars(self):
         return dict(port=self._settings.get(["port"]),
@@ -45,21 +58,6 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
           dict(type="navbar", custom_bindings=False),
           dict(type="settings", custom_bindings=False)
         ]
-
-    def updateData(self):
-        temp = self.serialNode.getTemp()
-        humid = self.serialNode.getHumid()
-        self._logger.debug("Got data from Serial  T:%0.2f H:%0.2f" %(temp,humid))
-        self._plugin_manager.send_plugin_message(
-            self._identifier, dict(temp=temp, humid=humid)
-        )
-
-    def start_drybox_timer(self, interval):
-        self._dataTimer = RepeatedTimer(
-            interval, self.updateData, run_first=True
-        )
-        self._dataTimer.start()
-        self._logger.info("Datatimer has been started.. %s" %self._dataTimer)
 
     def get_assets(self):
         self._logger.info("Get Assets accessed")
