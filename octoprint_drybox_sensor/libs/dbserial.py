@@ -21,6 +21,7 @@ class DBSerial(threading.Thread):
     self.history = []
     self.hist_length = 10
     self.hist_delay = 86400 #24h
+    self.send_history = False
 
   def getTemp(self):
     if self.ph is not None:
@@ -80,13 +81,20 @@ class DBSerial(threading.Thread):
           dstr = self.readData()
           if dstr != "":
             try:
-              self.addHistData()
+              sendhist = self.addHistData()
+              #self.log("Send_history is %s, AddHistData returned %s" %(self.send_history, sendhist))
               if self.pm is not None:
-             
-                #self.log("SendingPM message %0.2f %0.2f" %(self.temp,self.humid))
-                self.pm.send_plugin_message(
-                  self.dbpi._identifier, dict(temp=self.temp, humid=self.humid, history=self.history)
-                )
+                if sendhist or self.send_history:
+                  #self.log("Sending PM message with history %0.2f %0.2f Hist:[%d]" %(self.temp,self.humid,len(self.history)))
+                  self.pm.send_plugin_message(
+                    self.dbpi._identifier, dict(temp=self.temp, humid=self.humid, history=self.history)
+                  )
+                  self.send_history = False
+                else:
+                  #self.log("Sending PM message %0.2f %0.2f" %(self.temp,self.humid))
+                  self.pm.send_plugin_message(
+                    self.dbpi._identifier, dict(temp=self.temp, humid=self.humid)
+                  )
             except Exception as e:
               self.log("Failed to parse data from %s : %s" %(dstr,e))
     except KeyboardInterrupt:
@@ -101,13 +109,19 @@ class DBSerial(threading.Thread):
     if len(self.history) == 0:
       # initial entry
       self.history.append({"ts":time.time(),"temp":self.temp,"humid":self.humid})
+      return True
     else:
       lastData = self.history[-1]["ts"]
       if (lastData + self.hist_delay) < time.time():
         # Store the new value
         self.history.append({"ts":time.time(),"temp":self.temp,"humid":self.humid})
-      if len(self.history) > self.hist_length:
-        self.history.pop(0)
+        if len(self.history) > self.hist_length:
+          self.history.pop(0)
+        return True
+      #else :
+      #  self.log("NExt history update in %0.0f seconds" %((lastData + self.hist_delay)-time.time()))
+    return False
+    
 
 if __name__ == "__main__":
 

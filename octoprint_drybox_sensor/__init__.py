@@ -5,7 +5,10 @@ from .libs.dbserial import DBSerial
 class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin, 
                          octoprint.plugin.TemplatePlugin,
                          octoprint.plugin.SettingsPlugin,
+                         octoprint.plugin.EventHandlerPlugin,
                          octoprint.plugin.AssetPlugin):
+    def __init__(self):
+        self.serialNode = None
    
     def on_after_startup(self):
         self._logger.info("Drybox sensor using port:%s" %self._settings.get(["port"]))
@@ -16,6 +19,10 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
     def on_shutdown(self):
         self.serialNode.stop()
 
+    def on_event(self, event, payload):
+      if event == "UserLoggedIn" and self.serialNode is not None:
+          #self._logger.info("Setting send_history to True")
+          self.serialNode.send_history = True
     
     def get_settings_defaults(self):
         return dict(port="debug",
@@ -24,7 +31,7 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
                     humid_warn=25,
                     humid_error=30,
                     hist_length=10,
-                    hist_delay="24h"
+                    hist_delay="1m"
                     )
     
     def on_settings_save(self, data):
