@@ -19,6 +19,8 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
     
     def get_settings_defaults(self):
         return dict(port="debug",
+                    temp_warn=40,
+                    temp_error=50,
                     humid_warn=25,
                     humid_error=30,
                     hist_length=10,
@@ -48,8 +50,12 @@ class DryBoxSensorPlugin(octoprint.plugin.StartupPlugin,
 
     def get_template_vars(self):
         return dict(port=self._settings.get(["port"]),
+                    temp_warn=self._settings.get(["temp_warn"]),
+                    temp_error=self._settings.get(['temp_error']),
                     humid_warn=self._settings.get(["humid_warn"]),
-                    humid_error=self._settings.get(['humid_error'])
+                    humid_error=self._settings.get(['humid_error']),
+                    hist_length=self._settings.get(['hist_length']),
+                    hist_delay=self._settings.get(['hist_delay']),
                     )
         
     

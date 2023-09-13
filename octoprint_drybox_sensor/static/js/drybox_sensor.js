@@ -31,7 +31,13 @@ $(function() {
           }
 
           if (data.temp) {
-            $('#drybox-temp').html(_.sprintf(":%.1f&deg;C", data.temp));
+            $('#drybox-temp').html(_.sprintf(":%.1f&deg;C", data.temp)).removeClass("drybox_error drybox_warn");;
+            if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_warn()) {
+              $('#drybox-temp').addClass("drybox_warn");
+            }
+            if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_error()) {
+              $('#drybox-temp').addClass("drybox_error");
+            }
           }
           if (data.humid) {
             $('#drybox-humid').html(_.sprintf("%.1f%%", data.humid)).removeClass("drybox_error drybox_warn");

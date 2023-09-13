@@ -1,6 +1,7 @@
 import serial
 import threading
 import time
+import random
 
 class DBSerial(threading.Thread):
 
@@ -60,8 +61,14 @@ class DBSerial(threading.Thread):
   def readData(self):
     if self.ph == "debug":
       time.sleep(3)
-      return "T:25.00C,H:25.00%\r\n"
-    return self.ph.readline().decode()
+      self.temp = random.random()*30+20
+      self.humid = random.random()*50+10
+    else:
+      dstr = self.ph.readline().decode()
+      data = dstr.strip().split(",")
+      self.temp = float(data[0][2:7])
+      self.humid = float(data[1][2:7])
+      
 
   def run(self):
     try:
@@ -73,9 +80,6 @@ class DBSerial(threading.Thread):
           dstr = self.readData()
           if dstr != "":
             try:
-              data = dstr.strip().split(",")
-              self.temp = float(data[0][2:7])
-              self.humid = float(data[1][2:7])
               self.addHistData()
               if self.pm is not None:
              
