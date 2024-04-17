@@ -19,6 +19,12 @@ $(function() {
         
         //console.log("DRYBOX SETTINGS!!!!!");
         //console.log(self.settings);
+
+        const canvas = document.getElementById("drybox-graph");
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle("rgb(220 220 220)");
+        ctx.fillRect("10 10 280 130");
         
         self.onDataUpdaterPluginMessage = function (plugin, data) {
           //console.log("Drybox sensor data update");
@@ -50,6 +56,7 @@ $(function() {
             }
             
           }
+          
           if (data.history) {
             html = "<ul class='drybox-histlist'>";
             for (h in data.history) {

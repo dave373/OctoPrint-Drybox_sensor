@@ -19,8 +19,8 @@ class DBSerial(threading.Thread):
     self.humid = 0
     self.ph = None
     self.history = []
-    self.hist_length = 10
-    self.hist_delay = 86400 #24h
+    self.hist_length = 96  # 4 days at 1 data point/hr
+    self.hist_delay = 3600 #1h
     self.send_history = False
 
   def getTemp(self):
