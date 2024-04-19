@@ -27,36 +27,40 @@ $(function() {
         ctx.fillRect("10 10 280 130");
         
         self.onDataUpdaterPluginMessage = function (plugin, data) {
-          //console.log("Drybox sensor data update");
-          /*for (d in data) {
+          console.log("Drybox sensor data update");
+          for (d in data) {
             console.log(d + " : " + data[d]);
-          }
-          */
+	  }
           if (plugin != "drybox_sensor") {
               return;
           }
+	  if (data.temp == -1 && data.humid == -1) {
+	    // Connection error. 
+            $('#drybox-temp').html("No Data").addClass("drybox_error");
+	  }
+	  else {
+		  if (data.temp) {
+		    $('#drybox-temp').html(_.sprintf(":%.1f&deg;C", data.temp)).removeClass("drybox_error drybox_warn");
+		    if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_error()) {
+		      $('#drybox-temp').addClass("drybox_error");
+		    }
+		    else if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_warn()) {
+		      $('#drybox-temp').addClass("drybox_warn");
+		    }
+		    
+		  }
+		  if (data.humid) {
+		    $('#drybox-humid').html(_.sprintf("%.1f%%", data.humid)).removeClass("drybox_error drybox_warn");
+		    if (data.humid > self.settings.settings.plugins.drybox_sensor.humid_error()) {
+		      $('#drybox-humid').addClass("drybox_error");
+		    }
+		    else if (data.humid > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
+		      $('#drybox-humid').addClass("drybox_warn");
+		    }
+		    
+		  }
+	  }
 
-          if (data.temp) {
-            $('#drybox-temp').html(_.sprintf(":%.1f&deg;C", data.temp)).removeClass("drybox_error drybox_warn");;
-            if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_error()) {
-              $('#drybox-temp').addClass("drybox_error");
-            }
-            else if (data.temp > self.settings.settings.plugins.drybox_sensor.temp_warn()) {
-              $('#drybox-temp').addClass("drybox_warn");
-            }
-            
-          }
-          if (data.humid) {
-            $('#drybox-humid').html(_.sprintf("%.1f%%", data.humid)).removeClass("drybox_error drybox_warn");
-            if (data.humid > self.settings.settings.plugins.drybox_sensor.humid_error()) {
-              $('#drybox-humid').addClass("drybox_error");
-            }
-            else if (data.humid > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
-              $('#drybox-humid').addClass("drybox_warn");
-            }
-            
-          }
-          
           if (data.history) {
             html = "<ul class='drybox-histlist'>";
             for (h in data.history) {
@@ -102,6 +106,6 @@ $(function() {
         // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
         dependencies: [ "settingsViewModel" ],
         // Elements to bind to, e.g. #settings_plugin_drybox_sensor, #tab_plugin_drybox_sensor, ...
-        elements: [ "#drybox-temp", "#drybox-humid"]
+        elements: [ "#drybox-temp", "#drybox-humid", "drybox-port"]
     });
 });

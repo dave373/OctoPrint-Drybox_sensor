@@ -66,6 +66,7 @@ class DBSerial(threading.Thread):
       self.humid = random.random()*50+10
     else:
       dstr = self.ph.readline().decode()
+      self.log("Got data: ", dstr)
       data = dstr.strip().split(",")
       self.temp = float(data[0][2:7])
       self.humid = float(data[1][2:7])
@@ -97,6 +98,10 @@ class DBSerial(threading.Thread):
                   )
             except Exception as e:
               self.log("Failed to parse data from %s : %s" %(dstr,e))
+      else :
+        # Failed to open port
+        self.pm.send_plugin_message(self.dbpi._identifier, dict(temp=-1,humid=-1))
+        self.done=True
     except KeyboardInterrupt:
       self.log("Caught a ctrl-C... shutdown time")
       self.done=True

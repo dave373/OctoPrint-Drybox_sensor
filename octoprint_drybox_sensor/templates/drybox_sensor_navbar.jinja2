@@ -1,9 +1,9 @@
-<div class="navbar-text" onclick='$("#drybox-historybox").toggle()'>
+<div class="navbar-text" onclick='$("#drybox-history-div").toggle()'>
   <b>DryBox:<span id="drybox-port" data-bind="attr: {html: settings.settings.plugins.drybox_sensor.port}"></span></b>
-  <span id="drybox-temp" data-bind="attr: {title: 'Drybox Environment', html: dryboxTemp()}">?temp?</span>
-  <span id="drybox-humid" data-bind="attr: {title: 'Drybox Environment', html: dryboxHumid()}">humid</span>
-  <div id="drybox-historybox" style="display:none;">
-  <div id="drybox-history" data-bind="attr: {title: 'Drybox History', html: dryboxHistory()}">No Sensor History Yet</div>
-  <canvas id="drybox-graph" width="300" height="150"></canvas>
+  <span id="drybox-temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
+  <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
+  <div id="drybox-history-div" style="display:none;"> 
+	<div id="drybox-history" data-bind="attr: {html: dryboxHistory()}">No Sensor History Yet</div>
+  	<canvas id="drybox-graph"></canvas>
   </div>
 </div>
