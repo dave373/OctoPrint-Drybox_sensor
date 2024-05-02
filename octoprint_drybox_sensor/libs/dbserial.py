@@ -19,8 +19,8 @@ class DBSerial(threading.Thread):
     self.humid = 0
     self.ph = None
     self.history = []
-    self.hist_length = 96  # 4 days at 1 data point/hr
-    self.hist_delay = 3600 #1h
+    self.hist_length = 115200  # 4 days at 1 data point/5 secs
+    self.hist_delay = 0 # capture everything
     self.send_history = False
 
   def getTemp(self):
@@ -47,10 +47,10 @@ class DBSerial(threading.Thread):
         self.ph = "debug"
         self.log("DEBUG endpoint is being used")
       else:
-        self.ph = serial.Serial(self._port)
+        self.ph = serial.Serial(self._port, timeout=10)
         self.log("Opened the port : %s" %self._port)
     except Exception as e:
-      self.log("Failed to open sensor port")
+      self.log("Failed to open sensor port : %s" %e)
       self.ph = None
       return False
     return self.ph
@@ -65,8 +65,14 @@ class DBSerial(threading.Thread):
       self.temp = random.random()*30+20
       self.humid = random.random()*50+10
     else:
-      dstr = self.ph.readline().decode()
-      self.log("Got data: ", dstr)
+      #self.log("Waiting for data...")
+      try:
+        dstr = self.ph.readline().decode()
+      except Exception as e:
+        self.log("Exception reading data.. " , e)
+        self.temp = -2
+        self.humid = -2
+      #self.log("Got data: %s" %dstr)
       data = dstr.strip().split(",")
       self.temp = float(data[0][2:7])
       self.humid = float(data[1][2:7])
@@ -82,10 +88,10 @@ class DBSerial(threading.Thread):
           dstr = self.readData()
           if dstr != "":
             try:
-              sendhist = self.addHistData()
+              self.addHistData()
               #self.log("Send_history is %s, AddHistData returned %s" %(self.send_history, sendhist))
               if self.pm is not None:
-                if sendhist or self.send_history:
+                if self.send_history:
                   #self.log("Sending PM message with history %0.2f %0.2f Hist:[%d]" %(self.temp,self.humid,len(self.history)))
                   self.pm.send_plugin_message(
                     self.dbpi._identifier, dict(temp=self.temp, humid=self.humid, history=self.history)
@@ -100,7 +106,10 @@ class DBSerial(threading.Thread):
               self.log("Failed to parse data from %s : %s" %(dstr,e))
       else :
         # Failed to open port
-        self.pm.send_plugin_message(self.dbpi._identifier, dict(temp=-1,humid=-1))
+        if self.pm is not None:
+          self.pm.send_plugin_message(self.dbpi._identifier, dict(temp=-1,humid=-1))
+        else:
+          self.log("Failed to open port : %s" %self._port)
         self.done=True
     except KeyboardInterrupt:
       self.log("Caught a ctrl-C... shutdown time")
@@ -124,7 +133,7 @@ class DBSerial(threading.Thread):
           self.history.pop(0)
         return True
       #else :
-      #  self.log("NExt history update in %0.0f seconds" %((lastData + self.hist_delay)-time.time()))
+      #  self.log("Next history update in %0.0f seconds" %((lastData + self.hist_delay)-time.time()))
     return False
     
 
