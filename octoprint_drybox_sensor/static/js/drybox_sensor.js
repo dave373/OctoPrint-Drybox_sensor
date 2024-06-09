@@ -7,9 +7,7 @@
 $(function() {
      function Drybox_sensorViewModel(parameters) {
         var self = this;
-        self.hdata = [];
         self.tdata = [];
-        self.tsdata = [];
 
         // assign the injected parameters, e.g.:
         self.settings = parameters[0];
@@ -73,39 +71,35 @@ $(function() {
             var graphtimeskip = Math.floor(data.history.length/4);
 
             var count = 0;
-              for (h in data.history) {
-              count++;
+	    self.tdata=[];
+            for (h in data.history) {
               var d = new Date(data.history[h]['ts']*1000);
-	      if (count%graphtimeskip == 0) {
-                self.tsdata.push(d);
-              }
               if (count%graphskip == 0) {
-                self.hdata.push(data.history[h]['humid']);
-                self.tdata.push(data.history[h]['temp']);
+                self.tdata.push({"ts":d,"temp":data.history[h]['temp'],"humid":data.history[h]['humid']});
               }
-              if (count%textskip > 0) {
-                continue;
-              }  
+              if (count%textskip == 0) {
              
-              html += "<li>" + d.toLocaleString() + "  ";
-              tclass = "";
-              if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_error())) {
-                tclass = "drybox_error";
-              }
-              else if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_warn())) {
-                tclass = "drybox_warn"; 
-              }
-              
-              html += "<b class='" + tclass + "'>" + _.sprintf("%3.1f&deg;C", data.history[h]['temp']) + "</b>";
-              hclass = "";
-              if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_error()) {
-                hclass = "drybox_error";
-              }
-              else if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
-                hclass = "drybox_warn";
-              }
-              
-              html += "<b class='" + hclass + "'>" + _.sprintf("%3.1f%%", data.history[h]['humid']) + "</b></li>\n";
+		      html += "<li>" + d.toLocaleString() + "  ";
+		      tclass = "";
+		      if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_error())) {
+			tclass = "drybox_error";
+		      }
+		      else if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_warn())) {
+			tclass = "drybox_warn"; 
+		      }
+		      
+		      html += "<b class='" + tclass + "'>" + _.sprintf("%3.1f&deg;C", data.history[h]['temp']) + "</b>";
+		      hclass = "";
+		      if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_error()) {
+			hclass = "drybox_error";
+		      }
+		      else if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
+			hclass = "drybox_warn";
+		      }
+		      
+		      html += "<b class='" + hclass + "'>" + _.sprintf("%3.1f%%", data.history[h]['humid']) + "</b></li>\n";
+	      	}
+                count++;
             }
             html += "</ul>"
             $('#drybox-history').html(html);
@@ -144,8 +138,15 @@ $(function() {
 	    var context = canvas.getContext("2d");
 	    
 	    console.log("DRYBOX Canvas size: " + canvas.width + "x" + canvas.height);
-	    var MAX_SCALE = Math.max(...self.tdata, ...self.hdata);
-	    var MIN_SCALE = Math.min(...self.tdata, ...self.hdata);
+	    dp = []
+	    for (td in self.tdata) {
+		dp.push(self.tdata[td]['humid']);
+		dp.push(self.tdata[td]['temp']);
+	    }
+	    var maxv = Math.max(...dp);
+	    var minv = Math.min(...dp);
+	    var MAX_SCALE = Math.floor(maxv+(5-(maxv%5)));
+	    var MIN_SCALE = Math.floor(minv-(minv%5));
 	    
 	    var LABEL_WIDTH=60;
 	    var LABEL_HEIGHT=15;
@@ -159,9 +160,9 @@ $(function() {
 	    context.beginPath();
 	    context.lineWidth = 1;
 	    context.strokeStyle = "#0000ff";
-	    context.moveTo(0, canvas.height - ((graph_height * (self.hdata[0]-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE))-LABEL_HEIGHT);
-	    for(i = 1; i < self.hdata.length+1; i++){
-		context.lineTo(i * ((canvas.width - LABEL_WIDTH) / self.hdata.length), canvas.height - ((graph_height * (self.hdata[i]-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT);
+	    context.moveTo(0, canvas.height - ((graph_height * (self.tdata[0]['humid']-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE))-LABEL_HEIGHT);
+	    for(var i = 0; i < self.tdata.length; i++){
+		context.lineTo((i+1) * ((canvas.width - LABEL_WIDTH) / self.tdata.length), canvas.height - ((graph_height * (self.tdata[i]['humid']-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT);
 	    }
 	    context.stroke();
 
@@ -176,9 +177,9 @@ $(function() {
 	    context.beginPath();
 	    context.lineWidth = 1;
 	    context.strokeStyle = "#ff0000";
-	    context.moveTo(0, canvas.height - ((graph_height * (self.tdata[0]-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT);
-	    for(i = 1; i < self.tdata.length+1; i++){
-		context.lineTo(i * ((canvas.width - LABEL_WIDTH) / self.tdata.length), canvas.height - ((graph_height * (self.tdata[i]-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT );
+	    context.moveTo(0, canvas.height - ((graph_height * (self.tdata[0]['temp']-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT);
+	    for(i = 0; i < self.tdata.length; i++){
+		context.lineTo((i+1) * ((canvas.width - LABEL_WIDTH) / self.tdata.length), canvas.height - ((graph_height * (self.tdata[i]['temp']-MIN_SCALE)) / (MAX_SCALE-MIN_SCALE)) - LABEL_HEIGHT );
 	    }
 	    context.stroke();
 	    //fill data2
@@ -195,31 +196,47 @@ $(function() {
 	    
 	    //Vertical markers
 	    context.beginPath();
-	    context.strokeStyle = "darkgray"
+	    context.strokeStyle = "#444444";
 	    context.lineWidth = 0.2;
 	    var horizontalLine = graph_height / 10;
 	   
-	   for (let index = 1; index < 10; index++) {
+	    for (let index = 1; index < 10; index++) {
 		context.moveTo(0, horizontalLine * index);
 		context.lineTo(canvas.width - LABEL_WIDTH, (horizontalLine * index) + 0.2);
-		context.font = "14px serif";
-		context.strokeText((MAX_SCALE - (index * ((MAX_SCALE-MIN_SCALE)/10))).toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, (horizontalLine * index) + graph_height/50, LABEL_WIDTH);
+		context.font = "14px arial";
+		context.fillStyle = "black"
+		context.fillText((MAX_SCALE - (index * ((MAX_SCALE-MIN_SCALE)/10))).toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, (horizontalLine * index) + graph_height/50, LABEL_WIDTH);
 		context.moveTo(0, 0);
 		
 	    }
-	    context.strokeText(MIN_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, graph_height -0.8 );
-	    context.strokeText(MAX_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, 14);
+	    context.fillText(MIN_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, graph_height -0.8 );
+	    context.fillText(MAX_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, 14);
 	    context.stroke();
 
 	    // Time Markers
 	    context.beginPath();
-	    context.strokeStyle = "darkgray"
+	    context.strokeStyle = "#444444"
 	    context.lineWidth = 0.2;
-	    for (let tindex = 0; tindex < self.tsdata.length; tindex++) {
-	      context.moveTo((canvas.width-LABEL_WIDTH)/self.tsdata.length * tindex, 0);
-	      context.lineTo((canvas.width-LABEL_WIDTH)/self.tsdata.length * tindex, graph_height);
-	      context.font = "14px serif";
-	      context.strokeText(self.tsdata[tindex].toLocaleString(),(canvas.width-LABEL_WIDTH)/self.tsdata.length * tindex, canvas.height);	 
+	    var lastmarkpos = -1;
+	    var lastmarkts = self.tdata[self.tdata.length-1]['ts'].valueOf();
+ 	    var dcount = 1
+	    for (let tindex = self.tdata.length-1; tindex >= 0 ; tindex--) {
+	      if (self.tdata[tindex]['ts'].valueOf() < (lastmarkts - 86400000)) {
+		 lastmarkts = self.tdata[tindex]['ts'].valueOf();
+                 context.moveTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, 0);
+		 context.lineTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, graph_height);
+	      	 context.font = "14px serif";
+	         context.fillStyle = "black";
+	      	 //var dstr = self.tsdata[tindex].getDate() + "/" + (self.tsdata[tindex].getMonth()+1) + "\n" + self.tsdata[tindex].getHours() + ":" 
+		 //  + (self.tsdata[tindex].getMinutes() > 9 ? self.tsdata[tindex].getMinutes() : "0" + self.tsdata[tindex].getMinutes());   
+		 var dstr = "-1 day";
+		 
+		 if (dcount > 1) {
+	            dstr = "-" + dcount + "days";
+		 }
+		 dcount+=1;
+	         context.fillText(dstr,(canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, canvas.height-5);	 
+	      }
 	    }
 	    context.stroke();
 	}

@@ -2,8 +2,12 @@ import serial
 import threading
 import time
 import random
+import json
+from pathlib import Path
 
 class DBSerial(threading.Thread):
+
+  HISTORY_FILE = "/home/pi/.octoprint/data/drybox/history.json"
 
   def __init__(self, port, dbpi = None):
     threading.Thread.__init__(self)
@@ -22,6 +26,8 @@ class DBSerial(threading.Thread):
     self.hist_length = 115200  # 4 days at 1 data point/5 secs
     self.hist_delay = 0 # capture everything
     self.send_history = False
+    if not Path(self.HISTORY_FILE).parent.is_dir():
+      Path(self.HISTORY_FILE).parent.mkdir(parents=True, exist_ok=True)
 
   def getTemp(self):
     if self.ph is not None:
@@ -41,6 +47,20 @@ class DBSerial(threading.Thread):
     else:
       print(txt)
 
+  def write_data_file(self):
+    try:
+      with open(self.HISTORY_FILE,"w") as fh:
+        json.dump(self.history, fh, indent=2)
+    except Exception as e:
+        self.log("Failed to write data file : %s" %e)
+
+  def read_data_file(self):
+    try:
+      with open(self.HISTORY_FILE,"r") as fh:
+        self.history = json.load(fh)
+    except Exception as e:
+        self.log("Failed to read data file : %s" %e)
+
   def open(self):
     try:
       if self._port == "debug":
@@ -56,6 +76,11 @@ class DBSerial(threading.Thread):
     return self.ph
     
   def close(self):
+    if len(self.history) > 1000:
+      self.log("Writing history file before closing")
+      self.write_data_file()
+    else :
+      self.log("history is short, not saving")
     if self.ph != "debug":
       self.ph.close()
 
@@ -72,24 +97,29 @@ class DBSerial(threading.Thread):
         self.log("Exception reading data.. " , e)
         self.temp = -2
         self.humid = -2
+        return False
       #self.log("Got data: %s" %dstr)
       data = dstr.strip().split(",")
       self.temp = float(data[0][2:7])
       self.humid = float(data[1][2:7])
-      
+    return True
 
   def run(self):
     try:
       self.done = False
+      self.log("Loading history data file")
+      self.read_data_file()
+
       if self.open() is not False:
         self.log("Starting Serial read thread")
         while not self.done:
           #self.log("Reading data in thread")
-          dstr = self.readData()
-          if dstr != "":
+          if self.readData():
             try:
               self.addHistData()
-              #self.log("Send_history is %s, AddHistData returned %s" %(self.send_history, sendhist))
+              if (time.time() - Path(self.HISTORY_FILE).stat().st_mtime) > 86400:
+                self.write_data_file()
+             #self.log("Send_history is %s, AddHistData returned %s" %(self.send_history, sendhist))
               if self.pm is not None:
                 if self.send_history:
                   #self.log("Sending PM message with history %0.2f %0.2f Hist:[%d]" %(self.temp,self.humid,len(self.history)))
@@ -103,7 +133,7 @@ class DBSerial(threading.Thread):
                     self.dbpi._identifier, dict(temp=self.temp, humid=self.humid)
                   )
             except Exception as e:
-              self.log("Failed to parse data from %s : %s" %(dstr,e))
+              self.log("Failed to read or send data in run loop : %s" %e)
       else :
         # Failed to open port
         if self.pm is not None:
@@ -114,7 +144,7 @@ class DBSerial(threading.Thread):
     except KeyboardInterrupt:
       self.log("Caught a ctrl-C... shutdown time")
       self.done=True
-      self.close() 
+    self.close() 
 
   def stop(self):
     self.done = True
@@ -139,14 +169,14 @@ class DBSerial(threading.Thread):
 
 if __name__ == "__main__":
 
-  dbs = DBSerial('/dev/ttyACM0')
+  dbs = DBSerial('debug')
 
   dbs.start()
   time.sleep(1)
   print("Starting test")      
   while 1:
     try:
-      print ("Temp: %0.2f   Humid: %0.2f" %(dbs.getTemp(),dbs.getHumid()))
+      print ("Temp: %0.2f   Humid: %0.2f  History length=%d" %(dbs.getTemp(),dbs.getHumid(),len(dbs.history)))
       time.sleep(5)
       
     except KeyboardInterrupt:
