@@ -4,14 +4,21 @@
   <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
   <div id="drybox-history-div" style="display:none;"> 
   	<button data-bind="click: function(data, event) {showDryBoxHistText(event)}">Text/Graph</button><br/>
+	<div id="drybox-tspan">
+	<input data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="604800">7 days</input>
+	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="259200">3 days</input>
+	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="172800">2 days</input>
+	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="86400">1 day</input>
+	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="43200">12 hours</input>
+	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="21600">6 hours</input>
+	</div>
   	<div id="drybox-history-scroll" style="display:none;">
 	  <div id="drybox-history" data-bind="attr: {html: dryboxHistory()}">No Sensor History Yet</div>
   	</div>
-    <canvas id="drybox-graph"></canvas>
-    <div id="drybox-graph-legend">
-    <div style="color:blue;">Humidity</div>
-    <div style="color:red;">Temp</div>
-
-    </div>
+	<canvas id="drybox-graph"></canvas>
+    	<div id="drybox-graph-legend">
+    		<div style="color:blue;">Humidity</div>
+    		<div style="color:red;">Temp</div>
+    	</div>
   </div>
 </div>
