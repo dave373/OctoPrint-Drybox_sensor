@@ -15,8 +15,7 @@ $(function() {
         
         self.dryboxTemp = ko.observable();
         self.dryboxHumid = ko.observable();
-        self.dryboxHistory = ko.observable();
-        
+        self.dryboxTimeSpan = ko.observable("7 days");       
         //console.log("DRYBOX SETTINGS!!!!!");
         //console.log(self.settings);
         //console.log(self.settingsViewModel);
@@ -67,32 +66,32 @@ $(function() {
 
         }
         
-         self.printTextHistory = function() {
+        self.printTextHistory = function() {
+            self.dryboxGetData(0, 50);
             html = "<ul class='drybox-histlist'>";
-            var textskip = Math.floor(data.history.length/50);
             var count = 0;
-            for (h in data.history) {
-              var d = new Date(data.history[h]['ts']*1000);
+            for (h in self.tdata) {
+              var d = new Date(self.tdata[h]['ts']*1000);
               if (count%textskip == 0) {
                  
                   html += "<li>" + d.toLocaleString() + "  ";
                   tclass = "";
-                  if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_error())) {
+                  if (self.tdata[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_error())) {
                     tclass = "drybox_error";
                   }
-                  else if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_warn())) {
+                  else if (self.tdata[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_warn())) {
                     tclass = "drybox_warn"; 
                   }
                   
-                  html += "<b class='" + tclass + "'>" + _.sprintf("%3.1f&deg;C", data.history[h]['temp']) + "</b>";
+                  html += "<b class='" + tclass + "'>" + _.sprintf("%3.1f&deg;C", self.tdata[h]['temp']) + "</b>";
                   hclass = "";
-                  if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_error()) {
+                  if (self.tdata[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_error()) {
                     hclass = "drybox_error";
                   }
-                  else if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
+                  else if (self.tdata[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
                     hclass = "drybox_warn";
                   }
-                                    html += "<b class='" + hclass + "'>" + _.sprintf("%3.1f%%", data.history[h]['humid']) + "</b></li>\n";
+                  html += "<b class='" + hclass + "'>" + _.sprintf("%3.1f%%", self.tdata[h]['humid']) + "</b></li>\n";
               }
               count++;
             }
@@ -106,51 +105,63 @@ $(function() {
           console.log("DRYBOX: On Before Binding : " + self.global_settings);
         }
         
-	self.onShowHideDryBox = function(event) {
-	  if ($('#drybox-history-div').is(':visible')) {
+	self.onHideDryBox = function(event) {
 		$('#drybox-history-div').hide();
-	  }
-          else {
+	    event.stopPropagation();
+	}
+	
+    self.onShowDryBox = function(event) {
 		$('#drybox-history-div').show();
 	  	self.draw_drybox_graph();
-	  }
 	}
 
 	self.showDryBoxHistText = function(event) {
+	   event.stopPropagation();
 	   $('#drybox-history-scroll').toggle();
 	   $('#drybox-graph').toggle();
 	   $('#drybox-graph-legend').toggle();
        self.printTextHistory();
-	   event.stopPropagation();
 	   
 	}
 
-	self.dryboxGraphTimeSpan = function(event) {
-	   event.stopPropagation();	   
-	   console.log(event.target.value);
-	   var canvas = document.getElementById("drybox-graph");
-
-	   $.ajax({
-		url:         "/api/plugin/drybox_sensor",
-		type:        "POST",
-		contentType: "application/json",
-		dataType:    "json",
-		headers:     {"X-Api-Key": UI_API_KEY},
-		data:        JSON.stringify({ "command": "graph_tspan", "tspan": event.target.value, "count":canvas.width }),
-		complete: function (data) {
-			console.log("POSt completed: ");
-			console.log(data.responseJSON);
-            self.tdata=data.responseJSON;
-            self.draw_drybox_graph();
-		}
+    self.dryboxGetData = function(tspan, count) {
+        $.ajax({
+            url:         "/api/plugin/drybox_sensor",
+            type:        "POST",
+            contentType: "application/json",
+            dataType:    "json",
+            async:       false,
+            headers:     {"X-Api-Key": UI_API_KEY},
+            data:        JSON.stringify({ "command": "graph_tspan", "tspan": tspan, "count":count }),
+            complete: function (data) {
+                //console.log("POSt completed: ");
+                //console.log(data.responseJSON);
+                self.tdata=data.responseJSON;
+            }
 	   });
-	   //$.post("/api/plugin/drybox_sensor",'{"command":"graph_tspan","tspan":' + event.target + '}', function(resp) {
-	   //	   console.log(resp);
-	   //});
+    } 
+
+	self.dryboxTimeSpanSelected = function(event) {
+	   event.stopPropagation();	   
+	   //console.log(event.target.value);
+	   if ($('#drybox-history-scroll').is(':visible')) {
+  
+          // We are showing text
+          self.dryboxGetData(event.target.value, 50);
+          self.printTextHistory();
+       }
+       else {
+	      var canvas = document.getElementById("drybox-graph");
+          self.dryboxGetData(event.target.value, canvas.width);
+          self.draw_drybox_graph();
+       }
 	}
 		
 	self.draw_drybox_graph = function(){
-		
+        if (self.tdata && self.tdata.length == 0) {
+          console.log("No temp/humid data, not drawing graph"); 
+          return;
+        }
 	    var canvas = document.getElementById("drybox-graph");
 	    var cdiv = document.getElementById("drybox-history-div");
 	    canvas.width = cdiv.offsetWidth*.95;
