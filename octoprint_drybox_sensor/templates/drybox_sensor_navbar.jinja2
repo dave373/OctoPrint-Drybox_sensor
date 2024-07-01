@@ -1,21 +1,25 @@
-<div class="navbar-text" data-bind="click: onShowDryBox">
-  <b>DryBox:<span id="drybox-port" data-bind="attr: {html: settings.settings.plugins.drybox_sensor.port}"></span></b>
-  <span id="drybox-temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
-  <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
-  <div id="drybox-history-div" style="display:none;"> 
-  	<button data-bind="click: function(data, event) {showDryBoxHistText(event)}">Text/Graph</button>
-	<div id="drybox-tspan">
-	<input data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="604800" selected="selected">7 days</input>
-	<input  data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="259200">3 days</input>
-	<input  data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="172800">2 days</input>
-	<input  data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="86400">1 day</input>
-	<input  data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="43200">12 hours</input>
-	<input  data-bind="checked: dryboxTimeSpan" type="radio" name="timespan" value="21600">6 hours</input>
-	</div>
-  	<button data-bind="click: function(data, event) {onHideDryBox(event)}">Close</button>
+<div class="navbar-text">
+  <div class="drybox-navbar"  data-bind="click: onShowDryBox">
+    <b>DryBox:<span id="drybox-port" data-bind="attr: {html: settings.settings.plugins.drybox_sensor.port}"></span></b>
+    <span id="drybox-temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
+    <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
+  </div>
+  <div id="drybox-history-div" style="display:none;">
+    <div id="drybox-controls">
+      <button data-bind="click: function(data, event) {showDryBoxHistText(event)}">Text/Graph</button>
+      <div id="drybox-tspan" data-bind="click: dryboxTimeSpanChecked">
+        <input type="radio" name="drybox-timespan" value="604800" checked="checked">7 days</input>
+        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="259200">3 days</input>
+        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="172800">2 days</input>
+        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="86400">1 day</input>
+        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="43200">12 hours</input>
+        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="21600">6 hours</input>
+      </div>
+      <button data-bind="click: onHideDryBox">Close</button>
+    </div>
   	<div id="drybox-history-scroll" style="display:none;">
 	  <div id="drybox-history" >No Sensor History Yet</div>
-  	</div>
+  </div>
 	<canvas id="drybox-graph"></canvas>
     	<div id="drybox-graph-legend">
     		<div style="color:blue;">Humidity</div>
