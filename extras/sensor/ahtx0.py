@@ -42,10 +42,11 @@ class AHT10:
     AHTX0_STATUS_BUSY = const(0x80)  # Status bit for busy
     AHTX0_STATUS_CALIBRATED = const(0x08)  # Status bit for calibrated
 
-    def __init__(self, i2c, address=AHTX0_I2CADDR_DEFAULT):
+    def __init__(self, i2c, address=None):
         utime.sleep_ms(20)  # 20ms delay to wake up
         self._i2c = i2c
-        self._address = address
+        print("AHTX0 ADDRESS:" , address)
+        self._address = AHTX0_I2CADDR_DEFAULT if address is None else address
         self._buf = bytearray(6)
         self.reset()
         if not self.initialize():
