@@ -45,7 +45,6 @@ class AHT10:
     def __init__(self, i2c, address=None):
         utime.sleep_ms(20)  # 20ms delay to wake up
         self._i2c = i2c
-        print("AHTX0 ADDRESS:" , address)
         self._address = AHTX0_I2CADDR_DEFAULT if address is None else address
         self._buf = bytearray(6)
         self.reset()
@@ -94,6 +93,23 @@ class AHT10:
         self._temp = ((self._buf[3] & 0xF) << 16) | (self._buf[4] << 8) | self._buf[5]
         self._temp = ((self._temp * 200.0) / 0x100000) - 50
         return self._temp
+    
+    def data(self, avg=1):
+        """ Get temp and humidity in 1 go, returns (temp,humidity)"""
+        temps = []
+        humids = []
+        for i in range(avg):
+            self._perform_measurement()
+            self._humidity = (
+                (self._buf[1] << 12) | (self._buf[2] << 4) | (self._buf[3] >> 4)
+            )
+            self._humidity = (self._humidity * 100) / 0x100000
+            self._temp = ((self._buf[3] & 0xF) << 16) | (self._buf[4] << 8) | self._buf[5]
+            self._temp = ((self._temp * 200.0) / 0x100000) - 50
+            temps.append(self._temp)
+            humids.append(self._humidity)
+        return (sum(temps)/len(temps), sum(humids)/len(humids))
+        
 
     def _read_to_buffer(self):
         """Read sensor data to buffer"""
