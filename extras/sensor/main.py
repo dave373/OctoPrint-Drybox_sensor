@@ -4,6 +4,7 @@ from ahtx0 import AHT10
 import time
 import uselect
 import sys
+import math
   
 global brightness
 global read_delay
@@ -46,10 +47,10 @@ def setLED(level):
     #print("LED: %s" %level)
     rgb = (0,0,0)
     if level == 'good':
-        rgb = (1,1,1)
+        rgb = (math.ceil(brightness/2),math.ceil(brightness/2),math.ceil(brightness/2))
     elif level == 0:
         # Low ... Blue
-        rgb = (0,0,brightness)
+        rgb = (0,0,)
     elif level == 1:
         # OK ... Green
         rgb = (0,brightness, 0)
@@ -65,6 +66,18 @@ def setLED(level):
     np[0] = rgb
     np.write()
     
+def commandList():
+    print('## Command List ##')
+    print('#   "BR<val>"   Set brightness - INT 1-255')
+    print('#   "TI<i><val>"   Set Internal Temp Levels - <INT index 0-3 low/good/warn/high> <INT value degC>')
+    print('#   "HI<i><val>"   Set Internal Humidity Levels - INT <low/good/warn/high><value RH%>') 
+    print('#   "TE<i><val>"   Set External Temp Levels - INT <low/good/warn/high><value degC>')
+    print('#   "HE<i><val>"   Set External Humidity Levels - INT <low/good/warn/high><value RH%>') 
+    print('#   "RD<sec>"      Set Read Delay - INT Seconds between readings')
+    print('#   "LT<msec>"     Set LED_TIME - INT msec per status flash')
+    print('#   e.g.  Internal Humidity good upper level to 15% = HI115')
+    
+
 STATE_MEASURE = 1
 STATE_SEND = 2
 STATE_INT_T_LED = 3
@@ -98,7 +111,12 @@ while 1:
         if cmd != '':
             try:
                 cmd = cmd.strip()
-                print("CMD:RCVD:%s" %cmd)
+                if cmd == "":
+                    continue
+                print("# CMD:RCVD:%s" %cmd)
+                if cmd == "LI" or cmd == "?" or cmd == "help" or cmd == "-h":
+                   commandList()
+                   continue
                 if cmd[2:] and not cmd[2:].strip("01234567890"):
                     if cmd.startswith('BR'):
                         # Set brightness
@@ -121,9 +139,11 @@ while 1:
                     elif cmd.startswith('LT'):
                         # Set LED_TIME
                         led_time = int(cmd[2:])
-                    print("CMD:RESULT:OK")
+                    else:
+                        print("# CMD:RESULT:UNKNOWN:%s" %cmd)
+                    print("# CMD:RESULT:OK")
             except Exception as e:
-                print("CMD:RESULT:FAIL:%s" %str(e).replace(' ','_'))
+                print("# CMD:RESULT:FAIL:%s" %str(e).replace(' ','_'))
                 
                 
     if np[0] != (0,0,0):
