@@ -23,12 +23,17 @@ class TH_Sensor():
         self.sensor = AHT10(i2c, address=address)
         self.temp_levels = [5,35,50] if temp_levels is None else temp_levels
         self.humid_levels = [5,25,30] if humid_levels is None else humid_levels
+        self.samples = 1
         self.temp = None
         self.humid = None
+    
+    def samples(self, samples=None):
+        if samples is not None:
+            self.samples = samples
+        return samples
         
     def read(self):
-        self.temp = self.sensor.temperature
-        self.humid = self.sensor.relative_humidity
+        self.temp, self.humid = self.sensor.data(self.samples)
         
     def getState(self, val, levels):
         ''' Returns:
@@ -85,6 +90,7 @@ def commandList():
     print('#   "HE<i><val>"   Set External Humidity Levels - INT <low/warn/high><value RH%>') 
     print('#   "RD<sec>"      Set Read Delay - INT Seconds between readings')
     print('#   "LT<msec>"     Set LED_TIME - INT msec per status flash')
+    print('#   "SA<int>"      Set Samples per reading')
     print('#   "CS"           Print current level values')
     print('#   "DB<0-3>"      Set debug level')
     print('#   "LI" or "help or "-h" or "?" : Show this list')
@@ -98,6 +104,11 @@ def currentLevels():
             print('# %s-Temp : %s : %i degC' %(s.name,levs[v],s.temp_levels[v]))
         for v in range(len(s.humid_levels)):
             print('# %s-Humidity : %s : %i %%' %(s.name,levs[v],s.humid_levels[v]))
+    print("# Debug: %d" %debug)
+    print("# Samples: %d" %ext_sensor.samples())
+    print("# LED_time: %d msecs" %led_time)
+    print("# Brightness: %d" %brightness)
+    print("# Read delay: %d seconds" %read_delay)
     
 
 STATE_MEASURE = 1
@@ -165,10 +176,13 @@ while 1:
                 elif cmd.startswith('LT'):
                     # Set LED_TIME
                     led_time = int(cmd[2:])
+                elif cmd.startswith('SA'):
+                    # Set number of samples
+                    ext_sensor.samples(int(cmd[2:]))
+                    int_sensor.samples(int(cmd[2:]))
                 elif cmd.startswith('DB'):
                     # Set Debug
-                    debug = int(cmd[2:])
-                    
+                    debug = int(cmd[2:])    
                 else:
                     print("# CMD:RESULT:UNKNOWN:%s" %cmd)
                     break

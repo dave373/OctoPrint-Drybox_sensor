@@ -8,8 +8,7 @@ authors:
 - David Haddon
 license: AGPLv3
 
-# TODO
-date: today's date in format YYYY-MM-DD, e.g. 2015-04-21
+date: 2024-12-14
 
 homepage: https://github.com/dave373/OctoPrint-Drybox_sensor
 source: https://github.com/dave373/OctoPrint-Drybox_sensor
@@ -22,11 +21,8 @@ archive: https://github.com/dave373/OctoPrint-Drybox_sensor/archive/master.zip
 
 # TODO
 tags:
-- a list
-- of tags
-- that apply
-- to your plugin
-- (take a look at the existing plugins for what makes sense here)
+- plugin
+- sensor
 
 # TODO
 # When registering a plugin on plugins.octoprint.org, all screenshots should be uploaded not linked from external sites.

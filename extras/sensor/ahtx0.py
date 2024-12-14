@@ -95,7 +95,9 @@ class AHT10:
         return self._temp
     
     def data(self, avg=1):
-        """ Get temp and humidity in 1 go, returns (temp,humidity)"""
+        """ Get temp and humidity one go, with an averging options to smooth results.
+            @param avg - int number of samples to take before returning
+            @returns (temp,humidity)"""
         temps = []
         humids = []
         for i in range(avg):
