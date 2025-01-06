@@ -108,8 +108,10 @@ $(function() {
 	}
 	
   self.onShowDryBox = function() {
-		$('#drybox-history-div').show();
-	  self.dryboxTimeSpanChecked();
+    if (!$('#drybox-history-div').is(':visible')) {
+		  $('#drybox-history-div').show();
+	    self.dryboxTimeSpanChecked();
+    }
 	}
 
 	self.showDryBoxHistText = function(event) {
@@ -139,10 +141,10 @@ $(function() {
 	   });
     } 
 
-	self.dryboxTimeSpanChecked = function(event) {
-    dbts = $('input[name="drybox-timespan"]:checked');
+	self.dryboxTimeSpanChecked = function() {
+    var dbts = $('input[name="drybox-timespan"]:checked');
 	  var value = dbts[0].value; 
-    console.log("Timespan = " + value + " from element");
+    //console.log("Timespan = " + value + " from element");
 	  if ($('#drybox-history-scroll').is(':visible')) {
       // We are showing text
       self.dryboxGetData(value, 50, self.printTextHistory); 
@@ -178,7 +180,7 @@ $(function() {
 	    var LABEL_WIDTH=60;
 	    var LABEL_HEIGHT=15;
 
-	    var graph_height = canvas.height - LABEL_HEIGHT;
+	    var graph_height = canvas.height - LABEL_HEIGHT - 5;
 	    //clear the canvas
 	    context.clearRect(0, 0, canvas.width, canvas.height);
 	    context.moveTo(0, 0);
@@ -227,15 +229,15 @@ $(function() {
 	    context.lineWidth = 0.2;
 	    var horizontalLine = graph_height / 10;
 	   
-	    for (let index = 1; index < 10; index++) {
-		context.moveTo(0, horizontalLine * index);
-		context.lineTo(canvas.width - LABEL_WIDTH, (horizontalLine * index) + 0.2);
-		context.font = "14px arial";
-		context.fillStyle = "black"
-		context.fillText((MAX_SCALE - (index * ((MAX_SCALE-MIN_SCALE)/10))).toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, (horizontalLine * index) + graph_height/50, LABEL_WIDTH);
-		context.moveTo(0, 0);
-		
-	    }
+	  for (let index = 1; index < 10; index++) {
+      context.moveTo(0, horizontalLine * index);
+      context.lineTo(canvas.width - LABEL_WIDTH, (horizontalLine * index) + 0.2);
+      context.font = "14px arial";
+      context.fillStyle = "black"
+      context.fillText((MAX_SCALE - (index * ((MAX_SCALE-MIN_SCALE)/10))).toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, (horizontalLine * index) + graph_height/50, LABEL_WIDTH);
+      context.moveTo(0, 0);
+      
+	  }
 	    context.fillText(MIN_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, graph_height -0.8 );
 	    context.fillText(MAX_SCALE.toFixed(1) + "\u2103/%", canvas.width - LABEL_WIDTH + 3, 14);
 	    context.stroke();
@@ -244,30 +246,54 @@ $(function() {
 	    context.beginPath();
 	    context.strokeStyle = "#444444"
 	    context.lineWidth = 0.2;
-	    var lastmarkpos = -1;
-	    var lastmarkts = self.tdata[self.tdata.length-1]['ts'].valueOf();
- 	    var dcount = 1
-	    for (let tindex = self.tdata.length-1; tindex >= 0 ; tindex--) {
-	      if (self.tdata[tindex]['ts'].valueOf() < (lastmarkts - 86400000)) {
-		 lastmarkts = self.tdata[tindex]['ts'].valueOf();
-                 context.moveTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, 0);
-		 context.lineTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, graph_height);
-	      	 context.font = "14px serif";
-	         context.fillStyle = "black";
-	      	 //var dstr = self.tsdata[tindex].oindex].getMonth()+1) + "\n" + self.tsdata[tindex].getHours() + ":" 
-		 //  + (self.tsdata[tindex].getMinutes() > 9 ? self.tsdata[tindex].getMinutes() : "0" + self.tsdata[tindex].getMinutes());   
-		 var dstr = "-1 day";
-		 
-		 if (dcount > 1) {
-	            dstr = "-" + dcount + "days";
-		 }
-		 dcount+=1;
-	         context.fillText(dstr,(canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, canvas.height-5);	 
-	      }
+
+      var lastmark = self.tdata.length-1;
+      var gtspan = self.tdata[lastmark]['ts'].valueOf()-self.tdata[0]['ts'].valueOf();
+	    
+      var num_marks = 10;
+      var hourspan = gtspan/60/60;
+      var hours = [1,3,6,12,24]
+      var hour_index = 0;
+      while (num_marks > 7) {
+        num_marks = Math.round(hourspan/hours[hour_index++]);
+      }
+      hourspan = hours[hour_index];
+      var marks = Array(num_marks).fill(-1);
+      var markindex = 0;
+      while (lastmark > self.tdata.length*((num_marks-markindex-2)/num_marks) && lastmark > 0) {
+        var lastmarkd = new Date(self.tdata[lastmark]['ts'].valueOf()*1000);
+        var nextmarkd = new Date(self.tdata[lastmark-1]['ts'].valueOf()*1000);
+        if (lastmarkd.getMinutes() < nextmarkd.getMinutes() && lastmarkd.getHours()%hourspan==0) {
+          console.log(markindex, lastmarkd, nextmarkd);
+          marks[markindex] = lastmark;
+          markindex+=1;
+          lastmark -= 1;
+          if (markindex >= marks.length) {
+            console.log("all marks done", marks);
+            break;
+          }
+        }
+        lastmark -= 1;
+      }
+        
+      console.log("Marks :", marks);
+      for (let mark = 0; mark += 1 ; mark <= num_marks) {
+        var tindex = marks[mark];
+        var ts = self.tdata[tindex]['ts'];
+        console.log(mark + " : " + tindex + " : " + ts);
+        var d = new Date(ts*1000);
+        context.moveTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, 0);
+        context.lineTo((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex, graph_height+5);
+        context.font = LABEL_HEIGHT + "px serif";
+        context.fillStyle = "black";
+        var dstr = d.getDate() + "/" + (d.getMonth()+1) + " " + d.getHours() + ":" 
+		      + (d.getMinutes() > 9 ? d.getMinutes() : "0" + d.getMinutes());   
+		    //var dstr = "-1 day"; 
+		    context.fillText(dstr,((canvas.width-LABEL_WIDTH)/self.tdata.length * tindex) - LABEL_WIDTH/2, canvas.height);	 
 	    }
 	    context.stroke();
-	}
-      }
+	  }
+  }
 
     /* view model class, parameters for constructor, container to bind to
      * Please see http://docs.octoprint.org/en/master/plugins/viewmodels.html#registering-custom-viewmodels for more details
@@ -282,3 +308,4 @@ $(function() {
     });
 
 });
+

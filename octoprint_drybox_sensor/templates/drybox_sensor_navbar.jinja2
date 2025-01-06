@@ -7,13 +7,13 @@
   <div id="drybox-history-div" style="display:none;">
     <div id="drybox-controls">
       <button data-bind="click: function(data, event) {showDryBoxHistText(event)}">Text/Graph</button>
-      <div id="drybox-tspan" data-bind="click: dryboxTimeSpanChecked">
+      <div id="drybox-tspan" data-bind="click: dryboxTimeSpanChecked(this)">
         <input type="radio" name="drybox-timespan" value="604800" checked="checked">7 days</input>
-        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="259200">3 days</input>
-        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="172800">2 days</input>
-        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="86400">1 day</input>
-        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="43200">12 hours</input>
-        <input  data-bind="click: dryboxTimeSpanChecked" type="radio" name="drybox-timespan" value="21600">6 hours</input>
+        <input type="radio" name="drybox-timespan" value="259200">3 days</input>
+        <input type="radio" name="drybox-timespan" value="172800">2 days</input>
+        <input type="radio" name="drybox-timespan" value="86400">1 day</input>
+        <input type="radio" name="drybox-timespan" value="43200">12 hours</input>
+        <input type="radio" name="drybox-timespan" value="21600">6 hours</input>
       </div>
       <button data-bind="click: onHideDryBox">Close</button>
     </div>
