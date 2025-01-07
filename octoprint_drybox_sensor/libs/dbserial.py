@@ -3,14 +3,26 @@ import threading
 import time
 import random
 import json
+import os
+import shutil
 from pathlib import Path
+import rrdtool
+import traceback
 
 
 class DBSerial(threading.Thread):
 
-    HISTORY_FILE = "/home/pi/.octoprint/data/drybox/history.json"
+    data_ids = {
+        'TS' : 0,
+        'TI' : 1,
+        'HI' : 2,
+        'TE' : 3,
+        'HE' : 4
+    }
+    RRD_BU_FILE = ".octoprint/data/drybox/drybox.rrd"
+    RRD_RAM_FILE = "/run/user/1000/drybox.rrd"
 
-    def __init__(self, port, dbpi=None):
+    def __init__(self, port, dbpi=None, home_path=None):
         threading.Thread.__init__(self)
         self._port = port
         self.logger = None
@@ -20,26 +32,33 @@ class DBSerial(threading.Thread):
             self.logger = dbpi._logger
             self.pm = dbpi._plugin_manager
             self.dbpi = dbpi
-        self.temp = 0
-        self.humid = 0
-        self.ts = 0
+
+        self.data = {}
+        for id in self.data_ids:
+            self.data[id] = 0
         self.ph = None
-        self.history = []
-        self.hist_length = 115200  # 4 days at 1 data point/5 secs
-        self.hist_delay = 0  # capture everything
-        self.send_history = False
-        if not Path(self.HISTORY_FILE).parent.is_dir():
-            Path(self.HISTORY_FILE).parent.mkdir(parents=True, exist_ok=True)
-
-    def getTemp(self):
-        if self.ph is not None:
-            return self.temp
+        if home_path is None:
+            self.RRD_BU_FILE = os.path.join(os.environ['HOME'],self.RRD_BU_FILE)
         else:
-            raise ConnectionError("Not connected")
+            self.RRD_BU_FILE = os.path.join(home_path,self.RRD_BU_FILE)
+        if not Path(self.RRD_BU_FILE).parent.is_dir():
+            Path(self.RRD_BU_FILE).parent.mkdir(parents=True, exist_ok=True)
+            # The directory doesn't exist, so the RRD file must not either
+        else:
+            # We have the path, attempt to copy the existing data from disk to RAM File
+            self.log("Loading disk RRD file")
+            self.loadRDDBUFile()
 
-    def getHumid(self):
+        if not os.path.isfile(self.RRD_RAM_FILE):
+            # The RAM file does not exist?.  create a new one!
+            self.createRRD()
+
+    def getData(self, id=None):
         if self.ph is not None:
-            return self.humid
+            if id is None:
+                return self.data
+            if id in self.data:
+                return self.data[id]
         else:
             raise ConnectionError("Not connected")
 
@@ -49,27 +68,44 @@ class DBSerial(threading.Thread):
         else:
             print(txt)
 
-    def write_data_file(self):
-        try:
-            with open(self.HISTORY_FILE, "w") as fh:
-                json.dump(self.history, fh, indent=2)
-        except Exception as e:
-            self.log("Failed to write data file : %s" % e)
+    def createRRD(self):
+        # These settings create a ~12MB file
+        # TODO: Make settings adjustable through GUI config
+        rrdtool.create(self.RRD_RAM_FILE,
+          "--start","now","--step","5",
+          "DS:int_temp:GAUGE:60:-10:100",
+          "DS:ext_temp:GAUGE:60:-10:100",
+          "DS:int_humid:GAUGE:60:0:100",
+          "DS:ext_humid:GAUGE:60:0:100",
+          "RRA:AVERAGE:0.5:1m:7d",
+          "RRA:AVERAGE:0.5:5m:3M",
+          "RRA:AVERAGE:0.5:1h:2y",
+          "RRA:MIN:0.5:5s:7d",
+          "RRA:MIN:0.5:5m:3M",
+          "RRA:MIN:0.5:1h:2y",
+          "RRA:MAX:0.5:5s:7d",
+          "RRA:MAX:0.5:5m:3M",
+          "RRA:MAX:0.5:1h:2y",
+        )
+        if not os.path.isfile(self.RRD_BU_FILE):
+            self.dumpRRDBUFile()
+            self.log("Copied blank RRD to disk file")
 
-    def read_data_file(self):
+    def dumpRRDBUFile(self):
         try:
-            with open(self.HISTORY_FILE, "r") as fh:
-                self.history = json.load(fh)
-                self.log(
-                    "Loaded history data from file of %d DPs from %s to %s"
-                    % (
-                        len(self.history),
-                        time.ctime(self.history[0]["ts"]),
-                        time.ctime(self.history[-1]["ts"]),
-                    )
-                )
+            shutil.copyfile(self.RRD_RAM_FILE, self.RRD_BU_FILE)
         except Exception as e:
-            self.log("Failed to read data file : %s" % e)
+            self.log("Failed to dump RAM RRD file to disk: %s" % e)
+
+    def loadRDDBUFile(self):
+        try:
+            shutil.copyfile(self.RRD_BU_FILE, self.RRD_RAM_FILE)
+        except Exception as e:
+            self.log("Failed to load RRD disk file to RAM: %s" % e)
+
+    def updateRRDFile(self):
+        rrdtool.update(self.RRD_RAM_FILE, 'N:%s:%s:%s:%s' %(self.data['TI'], self.data['TE'], self.data['HI'], self.data['HE']))
+        #TODO Check age of disk file, copt to disk if over [x] time
 
     def open(self):
         try:
@@ -77,8 +113,14 @@ class DBSerial(threading.Thread):
                 self.ph = "debug"
                 self.log("DEBUG endpoint is being used")
             else:
-                self.ph = serial.Serial(self._port, timeout=10)
+                self.ph = serial.Serial(self._port, timeout=1)
                 self.log("Opened the port : %s" % self._port)
+                self.ph.flush()
+                self.log("Flushing old values...")
+                while len(self.ph.read_until(b'\n')) > 2:
+                    time.sleep(0.1)
+                self.log("Flush complete")
+
         except Exception as e:
             self.log("Failed to open sensor port : %s" % e)
             self.ph = None
@@ -86,11 +128,8 @@ class DBSerial(threading.Thread):
         return self.ph
 
     def close(self):
-        if len(self.history) > 1000:
-            self.log("Writing history file before closing")
-            self.write_data_file()
-        else:
-            self.log("history is short, not saving")
+        self.log("Writing RRD file to disk before closing")
+        self.dumpRRDBUFile()
         if self.ph != "debug":
             self.ph.close()
 
@@ -102,98 +141,64 @@ class DBSerial(threading.Thread):
             self.ts = time.time()
         else:
             # self.log("Waiting for data...")
-            try:
-                dstr = self.ph.readline().decode()
-            except Exception as e:
-                self.log("Exception reading data.. ", e)
-                self.temp = -2
-                self.humid = -2
-                return False
-            # self.log("Got data: %s" %dstr)
-            data = dstr.strip().split(",")
-            self.temp = float(data[0][2:7])
-            self.humid = float(data[1][2:7])
-            self.ts = time.time()
+          try:
+              dstr = self.ph.readline().decode()
+              if dstr == "":
+                  return False
+              #self.log("Got data: %s" %dstr)
+              data = dstr.strip().split(",")
+              self.data['TS'] = time.time()
+              for d in data:
+                  self.data[d[:2]] = d[3:8]
+          except Exception as e:
+              self.log("Exception reading data.. %s" %e)
+              self.log(traceback.format_exc())
+              self.temp = -2
+              self.humid = -2
+              return False
+          
         return True
 
-    def get_history_data(self, tspan, count=100):
-        tspan = int(tspan)
-        if count == 0:
-            count = 100
-        self.log("Getting data from tspan of %d" % tspan)
-        results = []
-        if not tspan:
-            self.log("No tspan specified, so returning from all history")
-            results = self.history[0 :: int(len(self.history) / count)]
-        else:
-            now = time.time()
-            rec = time.time() - tspan
-            self.log("NOW: %d   REC=%d  diff=%d" % (now, rec, now - rec))
-            index = 0
-
-            while int(self.history[index]["ts"]) < rec:
-                index += 1
-                if index >= len(self.history):
-                    self.log(
-                        "Reached the end of the history... How??  len=%d, ind=%d, rec=%d, last_ts=%d"
-                        % (len(self.history), index, rec, self.history[index - 1]["ts"])
-                    )
-                    index -= 1
-                    break
-            if (count*2) <= len(self.history[index:]):
-                self.log(
-                    "Returning %d history points from %d available, from %d to %d"
-                    % (count, len(self.history) - index, self.history[index]["ts"], now)
-                )
-                return self.history[index :: int(len(self.history[index:]) / count)]
-            else:
-                self.log(
-                    "Returning all history points from the %d available, from %d to %d"
-                    % (len(self.history) - index, self.history[index]["ts"], now)
-                )
-                return self.history[index:]
-
-
+    def get_history_data(self, start=None, end=None, dtype=None):
+        results = None
+        ds = "AVERAGE" if dtype is None else dtype
+        if start is None and end is None:
+          self.log("Getting %s data, 1 day" %(ds))
+          results = rrdtool.fetch(self.RRD_RAM_FILE, ds)
+        if start is not None and end is None:
+          self.log("Start specified, returning %s from (%d) %s" %(ds, int(start), time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(start))))
+          results = rrdtool.fetch(self.RRD_RAM_FILE, [ds, "-s",  str(int(start))])
+        elif start is not None and end is not None:
+          self.log("Start and End specified, returning %s from %s to %s" 
+                   %(ds, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(start)),
+                   time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(end))))
+          results = rrdtool.fetch(self.RRD_RAM_FILE, [ds, "-s", str(int(start)), "-e", str(int(end))])
+        return results
+        
     def run(self):
         try:
             self.done = False
-            self.log("Loading history data file")
-            self.read_data_file()
-
+            
             if self.open() is not False:
                 self.log("Starting Serial read thread")
                 while not self.done:
                     # self.log("Reading data in thread")
                     if self.read_data():
                         try:
-                            self.add_hist_data()
+                            self.updateRRDFile()
                             if (
-                                time.time() - Path(self.HISTORY_FILE).stat().st_mtime
+                                time.time() - Path(self.RRD_BU_FILE).stat().st_mtime
                             ) > 86400:
-                                self.write_data_file()
-                            # self.log("Send_history is %s, AddHistData returned %s" %(self.send_history, sendhist))
+                                self.dumpRRDBUFile()
                             if self.pm is not None:
-                                #if self.send_history:
-                                #    # self.log("Sending PM message with history %0.2f %0.2f Hist:[%d]" %(self.temp,self.humid,len(self.history)))
-                                #    self.pm.send_plugin_message(
-                                #        self.dbpi._identifier,
-                                #        dict(
-                                #            temp=self.temp,
-                                #            humid=self.humid,
-                                #            history=self.history,
-                                #        ),
-                                #    )
-                                #    self.send_history = False
-                            #    else:
-                                    # self.log("Sending PM message %0.2f %0.2f" %(self.temp,self.humid))
                                 self.pm.send_plugin_message(
-                                    self.dbpi._identifier,
-                                    dict(
-                                        ts=self.ts, temp=self.temp, humid=self.humid
-                                    ),
+                                    self.dbpi._identifier, self.data
                                 )
                         except Exception as e:
                             self.log("Failed to read or send data in run loop : %s" % e)
+                            self.log(traceback.format_exc())
+                    else:
+                        time.sleep(0.99)
             else:
                 # Failed to open port
                 if self.pm is not None:
@@ -211,47 +216,29 @@ class DBSerial(threading.Thread):
     def stop(self):
         self.done = True
 
-    def add_hist_data(self):
-        if len(self.history) == 0:
-            # initial entry
-            self.history.append(
-                {"ts": time.time(), "temp": self.temp, "humid": self.humid}
-            )
-            return True
-        else:
-            lastData = self.history[-1]["ts"]
-            if (lastData + self.hist_delay) < time.time():
-                # Store the new value
-                self.history.append(
-                    {"ts": time.time(), "temp": self.temp, "humid": self.humid}
-                )
-                if len(self.history) > self.hist_length:
-                    self.history.pop(0)
-                return True
-            # else :
-            #  self.log("Next history update in %0.0f seconds" %((lastData + self.hist_delay)-time.time()))
-        return False
+    
+if __name__ == "__main__":
+  dbs = DBSerial("/dev/ttyACM0")
 
-    if __name__ == "__main__":
+  dbs.start()
+  time.sleep(1)
+  print("Starting test loop")
+  while 1:
+      try:
+          data = dbs.get_history_data(start=time.time()-600, dtype="MAX")
 
-        dbs = DBSerial("debug")
+          print(data[0], data[1])
+          for i in range(len(data[2])):
+              if data[2][i][0] is not None:
+                  print("%3d %d : %s" %(i,data[0][0] + i*data[0][2], data[2][i]))
+          time.sleep(5)
 
-        dbs.start()
-        time.sleep(1)
-        print("Starting test")
-        while 1:
-            try:
-                print(
-                    "Temp: %0.2f   Humid: %0.2f  History length=%d"
-                    % (dbs.getTemp(), dbs.getHumid(), len(dbs.history))
-                )
-                time.sleep(5)
-
-            except KeyboardInterrupt:
-                break
-            except Exception as e:
-                print("Something went wrong : %s" % e)
-                break
-        print("Waiting for thread to stop")
-        dbs.stop()
-        dbs.join()
+      except KeyboardInterrupt:
+          break
+      except Exception as e:
+          print("Something went wrong : %s" % e)
+          print(traceback.format_exc())
+          break
+  print("Waiting for thread to stop")
+  dbs.stop()
+  dbs.join()
