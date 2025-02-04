@@ -14,11 +14,11 @@ plugin_package = "octoprint_drybox_sensor"
 plugin_name = "OctoPrint-Drybox_sensor"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.3.1"
+plugin_version = "0.3.2"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
-plugin_description = """External Sensor Interface over serial"""
+plugin_description = """Dual External Sensor Interface over serial"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
 plugin_author = "David Haddon"
