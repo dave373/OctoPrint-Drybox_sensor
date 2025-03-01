@@ -5,31 +5,62 @@
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.port">
         </div>
     </div>
+    <h3>Internal:</h3>
     <div class="control-group">
         <label class="control-label">{{ _('Temperature Warning at') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.temp_warn">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.int_temp_warn">
         </div>
     </div>
     <div class="control-group">
         <label class="control-label">{{ _('Temperature Error at') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.temp_error">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.int_temp_error">
         </div>
     </div>
     <div class="control-group">
         <label class="control-label">{{ _('Humidity Warning at') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.humid_warn">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.int_humid_warn">
         </div>
     </div>
     <div class="control-group">
         <label class="control-label">{{ _('Humidity Error at') }}</label>
         <div class="controls">
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.humid_error">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.int_humid_error">
+        </div>
+    </div>
+    <h3>External:</h3>
+    <div class="control-group">
+        <label class="control-label">{{ _('Temperature Warning at') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.ext_temp_warn">
         </div>
     </div>
     <div class="control-group">
+        <label class="control-label">{{ _('Temperature Error at') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.ext_temp_error">
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label">{{ _('Humidity Warning at') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.ext_humid_warn">
+        </div>
+    </div>
+    <div class="control-group">
+        <label class="control-label">{{ _('Humidity Error at') }}</label>
+        <div class="controls">
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.ext_humid_error">
+        </div>
+    </div>
+ 
+
+
+
+
+    <!-- div class="control-group">
         <label class="control-label">{{ _('History Length') }}</label>
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.hist_length">
@@ -40,5 +71,5 @@
         <div class="controls">
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.drybox_sensor.hist_delay">
         </div>
-    </div>
+    </div -->
 </form>

@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 import rrdtool
 import traceback
-
+from datetime import timedelta, datetime 
 
 class DBSerial(threading.Thread):
 
@@ -45,10 +45,17 @@ class DBSerial(threading.Thread):
             Path(self.RRD_BU_FILE).parent.mkdir(parents=True, exist_ok=True)
             # The directory doesn't exist, so the RRD file must not either
         else:
+            while not Path(self.RRD_RAM_FILE).parent.is_dir():
+                self.log("Filesystem not ready for RAM RRD file... waiting for creation...")
+                try:
+                    Path(self.RRD_RAM_FILE).parent.mkdir(parents=True, exist_ok=True)
+                except:
+                    time.sleep(3)
             # We have the path, attempt to copy the existing data from disk to RAM File
             self.log("Loading disk RRD file")
-            self.loadRDDBUFile()
-
+            while self.loadRRDBUFile() is False:
+                self.log("Failed to load RRD File, waiting for Filesystem?")
+                time.sleep(5)
         if not os.path.isfile(self.RRD_RAM_FILE):
             # The RAM file does not exist?.  create a new one!
             self.createRRD()
@@ -64,7 +71,7 @@ class DBSerial(threading.Thread):
 
     def log(self, txt):
         if self.logger is not None:
-            self.logger.info(" ::DBSerial:: %s" % txt)
+            self.logger.debug(" ::DBSerial:: %s" % txt)
         else:
             print(txt)
 
@@ -94,18 +101,25 @@ class DBSerial(threading.Thread):
     def dumpRRDBUFile(self):
         try:
             shutil.copyfile(self.RRD_RAM_FILE, self.RRD_BU_FILE)
+            return True
         except Exception as e:
             self.log("Failed to dump RAM RRD file to disk: %s" % e)
+        return False
 
-    def loadRDDBUFile(self):
+    def loadRRDBUFile(self):
         try:
             shutil.copyfile(self.RRD_BU_FILE, self.RRD_RAM_FILE)
+            return True
         except Exception as e:
             self.log("Failed to load RRD disk file to RAM: %s" % e)
+        return False
 
     def updateRRDFile(self):
+        if not os.path.isfile(self.RRD_RAM_FILE):
+            if not self.loadRRDBUFile():
+               # The RAM file does not exist?. and cannot be copid..create a new one???
+               self.createRRD()
         rrdtool.update(self.RRD_RAM_FILE, 'N:%s:%s:%s:%s' %(self.data['TI'], self.data['TE'], self.data['HI'], self.data['HE']))
-        #TODO Check age of disk file, copt to disk if over [x] time
 
     def open(self):
         try:
@@ -128,6 +142,7 @@ class DBSerial(threading.Thread):
         return self.ph
 
     def close(self):
+        self.done = True
         self.log("Writing RRD file to disk before closing")
         self.dumpRRDBUFile()
         if self.ph != "debug":
@@ -140,8 +155,8 @@ class DBSerial(threading.Thread):
             self.humid = random.random() * 50 + 10
             self.ts = time.time()
         else:
-            # self.log("Waiting for data...")
-          try:
+            self.log("Waiting for data...")
+            try:
               dstr = self.ph.readline().decode()
               if dstr == "":
                   return False
@@ -150,31 +165,56 @@ class DBSerial(threading.Thread):
               self.data['TS'] = time.time()
               for d in data:
                   self.data[d[:2]] = d[3:8]
-          except Exception as e:
+              self.log("Read data: %s" %self.data)
+            except Exception as e:
               self.log("Exception reading data.. %s" %e)
               self.log(traceback.format_exc())
               self.temp = -2
               self.humid = -2
               return False
           
-        return True
+        return True 
 
-    def get_history_data(self, start=None, end=None, dtype=None):
+    def get_history_data(self, span=None, start=None, dtype=None, count=0):
         results = None
+        self.log("Get history: Span:%s start:%s dtype:%s count=%d" %(span, start, dtype,count))
+        start_e,end_e = self.getEpochFromSpan(span, start)
+        # What resolution?
+        res = int((end_e-start_e)/count)
+        self.log("using resolution of %d" %res)
         ds = "AVERAGE" if dtype is None else dtype
-        if start is None and end is None:
-          self.log("Getting %s data, 1 day" %(ds))
-          results = rrdtool.fetch(self.RRD_RAM_FILE, ds)
-        if start is not None and end is None:
-          self.log("Start specified, returning %s from (%d) %s" %(ds, int(start), time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(start))))
-          results = rrdtool.fetch(self.RRD_RAM_FILE, [ds, "-s",  str(int(start))])
-        elif start is not None and end is not None:
-          self.log("Start and End specified, returning %s from %s to %s" 
-                   %(ds, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(start)),
-                   time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(end))))
-          results = rrdtool.fetch(self.RRD_RAM_FILE, [ds, "-s", str(int(start)), "-e", str(int(end))])
+        try:
+            self.log("Start and End specified, returning %d %s valuer from %s to %s" 
+               %(res, ds, time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(start_e)),
+               time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(end_e))))
+            results = rrdtool.fetch(self.RRD_RAM_FILE, [ds, "-s", str(int(start_e)), "-e", str(int(end_e)), "-r", str(res)])
+        except Exception as e:
+            for dl in traceback.format_exc().split('\n'):
+                self.log(dl)
         return results
-        
+       
+    def getEpochFromSpan(self, span, start=None):
+        tspan = None
+        if 'h' in span:
+            tspan = timedelta(hours=int(span.strip('h')))
+        elif 'd' in span:
+            tspan = timedelta(days=int(span.strip('d')))
+        elif 'w' in span:
+            tspan = timedelta(weeks=int(span.strip('w')))
+        else:
+            try:
+                tspan = timedelta(minutes=int(span))
+            except Exception:
+                pass
+        if tspan is None:
+            # default to 1 day
+            tspan = timedelta(days=1)
+        start_dt = datetime.now()-tspan
+        if start is not None and start != 0:
+            start_dt = datetime.fromtimestamp(start) # Assume that start is suplied as an epoch
+        end_dt = start_dt + tspan
+        return start_dt.timestamp(), end_dt.timestamp()
+
     def run(self):
         try:
             self.done = False
@@ -198,7 +238,7 @@ class DBSerial(threading.Thread):
                             self.log("Failed to read or send data in run loop : %s" % e)
                             self.log(traceback.format_exc())
                     else:
-                        time.sleep(0.99)
+                        time.sleep(0.5)
             else:
                 # Failed to open port
                 if self.pm is not None:
@@ -214,7 +254,10 @@ class DBSerial(threading.Thread):
         self.close()
 
     def stop(self):
+        self.log("Stopping the DBSerial thread")
         self.done = True
+    
+
 
     
 if __name__ == "__main__":

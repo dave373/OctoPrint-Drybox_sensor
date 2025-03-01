@@ -33,7 +33,7 @@ plugin_url = "https://github.com/dave373/OctoPrint-Drybox_sensor"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["pyserial"]
+plugin_requires = ["pyserial","rrdtool"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point

@@ -10,6 +10,7 @@ class DryBoxSensorPlugin(
     octoprint.plugin.SettingsPlugin,
     octoprint.plugin.EventHandlerPlugin,
     octoprint.plugin.AssetPlugin,
+    octoprint.plugin.ShutdownPlugin,
     octoprint.plugin.SimpleApiPlugin,
 ):
     def __init__(self):
@@ -22,28 +23,33 @@ class DryBoxSensorPlugin(
         self._logger.info("Finished startup")
 
     def on_shutdown(self):
+        self._logger.debug("Sending stop to serial thread...")
         self.serialNode.stop()
+        self._logger.debug("Sent stop to serial thread")
+
 
     def on_event(self, event, payload):
         if event == "UserLoggedIn" and self.serialNode is not None:
             # self._logger.info("Setting send_history to True")
             self.serialNode.send_history = True
         else:
-            self._logger.info("EVENT: %s,  PAYLOAD: %s" % (event, payload))
+            self._logger.debug("EVENT: %s,  PAYLOAD: %s" % (event, payload))
             self._plugin_manager.send_plugin_message(self._identifier, payload)
 
     def get_api_commands(self):
-        return dict(graph_tspan=["tspan"])
+        return dict(graph_tspan=["tspan","start","dtype","count"],force_save=[])
 
     def on_api_command(self, command, data):
         # import flask
         if command == "graph_tspan":
             self._logger.info("Tspan set to %s:" % data)
-            data = self.serialNode.get_history_data(data["tspan"],data['count'])
+            data = self.serialNode.get_history_data(data["tspan"],data['start'],data['dtype'], data['count'])
             return flask.jsonify(data)
         if command == "force_save":
-            self.logger.info("Forcing a history save")
-            self.serialNode.write_data_file()
+            self.logger.info("Forcing an RRD Dump")
+            if self.serialNode.dumpRRDBUFile():
+                return flask.jsonify("OK")
+            return flask.jsonify("Failed")
         else:
             self._logger.info(
                 "Unknown Command : command=%s   data=%s" % (command, data)
@@ -58,12 +64,15 @@ class DryBoxSensorPlugin(
     def get_settings_defaults(self):
         return dict(
             port="debug",
-            temp_warn=40,
-            temp_error=50,
-            humid_warn=25,
-            humid_error=30,
-            hist_length=10,
-            hist_delay="1m",
+            int_temp_warn=40,
+            int_temp_error=50,
+            int_humid_warn=25,
+            int_humid_error=30,
+            ext_temp_warn=40,
+            ext_temp_error=50,
+            ext_humid_warn=25,
+            ext_humid_error=30,
+
         )
 
     def on_settings_save(self, data):
@@ -74,15 +83,15 @@ class DryBoxSensorPlugin(
             self.serialNode = self.serialNode = DBSerial(data["port"], self)
             self.serialNode.start()
             self._logger.info("Serial reader restarted with new port")
-        if "hist_length" in data:
-            self.serialNode.hist_length = int(data["hist_length"])
-        if "hist_delay" in data:
-            if "m" in data["hist_delay"]:
-                self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 60
-            elif "h" in data["hist_delay"]:
-                self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 3600
-            else:
-                self.serialNode.hist_delay = int(data["hist_delay"].strip("s"))
+        #if "hist_length" in data:
+        #    self.serialNode.hist_length = int(data["hist_length"])
+        #if "hist_delay" in data:
+        #    if "m" in data["hist_delay"]:
+        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 60
+        #    elif "h" in data["hist_delay"]:
+        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 3600
+        #    else:
+        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("s"))
 
         self._plugin_manager.send_plugin_message(self._identifier, dict())
         return diff
@@ -90,13 +99,15 @@ class DryBoxSensorPlugin(
     def get_template_vars(self):
         return dict(
             port=self._settings.get(["port"]),
-            temp_warn=self._settings.get(["temp_warn"]),
-            temp_error=self._settings.get(["temp_error"]),
-            humid_warn=self._settings.get(["humid_warn"]),
-            humid_error=self._settings.get(["humid_error"]),
-            hist_length=self._settings.get(["hist_length"]),
-            hist_delay=self._settings.get(["hist_delay"]),
-        )
+            int_temp_warn=self._settings.get(["int_temp_warn"]),
+            int_temp_error=self._settings.get(["int_temp_error"]),
+            int_humid_warn=self._settings.get(["int_humid_warn"]),
+            int_humid_error=self._settings.get(["int_humid_error"]),
+            ext_temp_warn=self._settings.get(["ext_temp_warn"]),
+            ext_temp_error=self._settings.get(["ext_temp_error"]),
+            ext_humid_warn=self._settings.get(["ext_humid_warn"]),
+            ext_humid_error=self._settings.get(["ext_humid_error"]),
+ )
 
     def get_template_configs(self):
         return [

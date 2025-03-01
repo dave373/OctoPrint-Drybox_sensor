@@ -3,15 +3,25 @@
   <span id="drybox-temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
   <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
   <div id="drybox-history-div" style="display:none;"> 
+    <p>External Sensor <span id="drybox-ext-temp" data-bind="attr: {html: dryboxExtTemp()}">temp</span>
+    <span id="drybox-ext-humid" data-bind="attr: {html: dryboxExtHumid()}">humid</span></p>
   	<button data-bind="click: function(data, event) {showDryBoxHistText(event)}">Text/Graph</button><br/>
+  
 	<div id="drybox-tspan">
-	<input data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="604800">7 days</input>
-	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="259200">3 days</input>
-	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="172800">2 days</input>
-	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="86400">1 day</input>
-	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="43200">12 hours</input>
-	<input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="21600">6 hours</input>
-	</div>
+	  <input data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="10w">10 weeks</input>
+	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="2w">2 weeks</input>
+ 	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1w">1 week</input>
+	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="3d">3 days</input>
+	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1d">1 day</input>
+	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="6h">6 hours</input>
+	  <input  data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1h">1 hour</input>
+	  <div class="input-append no_mouse">
+        <label for="db_customSpan">Span xxx[w, d, h]</label><input id="db_customSpan"type="text" value=""/>
+	    <label for="db_customStart">Start [epoch]</label><input type="text" data-bind="value: customStart"/>
+        <button class="btn btn-primary" data-bind="click: function(data, event) {dryboxGraphTimeSpan('custom')}">{{ _('Go') }}</button>
+      </div>
+    </div>
+    
   	<div id="drybox-history-scroll" style="display:none;">
 	  <div id="drybox-history" data-bind="attr: {html: dryboxHistory()}">No Sensor History Yet</div>
   	</div>
@@ -20,5 +30,6 @@
     		<div style="color:blue;">Humidity</div>
     		<div style="color:red;">Temp</div>
     	</div>
+    <img id="drybox-graph-image"/>
   </div>
 </div>
