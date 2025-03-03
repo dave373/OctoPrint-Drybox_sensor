@@ -130,13 +130,14 @@ $(function() {
             console.log("DRYBOX SHUTDOWN!!!");
         }
         
-	    self.onShowHideDryBox = function(event) {
-	        if ($('#drybox-history-div').is(':visible')) {
+	    self.onShowHideDryBox = function(oc) {
+            console.log("OSHDB: " + oc);
+	        if ($('#drybox-history-div').is(':visible') && oc == "close")  {
 		        $('#drybox-history-div').hide();
 	        }
             else {
 		        $('#drybox-history-div').show();
-	  	        //self.draw_drybox_graph();
+                $('#db1w').click();
                 $('#drybox-graph-image').show();
                 $('#drybox-graph-image').width=$('#drybox-history-div').width-10;
                 $('#drybox-graph-image').height=$('#drybox-history-div').height-100;
@@ -239,7 +240,7 @@ $(function() {
                 for(var i = 0; i < self.tdata[2].length; i++){
                     if (self.tdata[2][i][di] != null) {
                         var vertpx = canvas.height - (graph_height * (self.tdata[2][i][di]-MIN_SCALE) / (MAX_SCALE-MIN_SCALE))-LABEL_HEIGHT;
-                        context.lineTo(graph_width - (i * ts_step)/tb_ratio, vertpx); 
+                        context.lineTo((i * ts_step)/tb_ratio, vertpx); 
                         if (i%100 == 0) {
                             console.log("Data[" + i + "][" + self.tdata[1][di] + "] = " + self.tdata[2][i][di] + "  LINE TO: " + (graph_width - (i * ts_step)/tb_ratio).toFixed(1) + "," + vertpx.toFixed(1));
                         }
@@ -302,7 +303,7 @@ $(function() {
                  context.lineTo((canvas.width-LABEL_WIDTH)/(markcount) * mindex, graph_height);
                  context.font = "14px serif";
                  context.fillStyle = "black";
-                 var mts = (end_ts-(tspan/markcount*mindex))*1000;
+                 var mts = (start_ts+(tspan/markcount*mindex))*1000;
                  console.log("Time Marker: " + mindex + " TS:" + mts);
                  var dt = new Date(mts);
                  var dstr = dt.getHours() + ":" + (dt.getMinutes() > 9 ? dt.getMinutes() : "0" + dt.getMinutes());   

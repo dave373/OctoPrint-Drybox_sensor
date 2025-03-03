@@ -20,7 +20,7 @@ class DBSerial(threading.Thread):
         'HE' : 4
     }
     RRD_BU_FILE = ".octoprint/data/drybox/drybox.rrd"
-    RRD_RAM_FILE = "/run/user/1000/drybox.rrd"
+    RRD_RAM_FILE = "/run/plugins/drybox.rrd"
 
     def __init__(self, port, dbpi=None, home_path=None):
         threading.Thread.__init__(self)
@@ -69,11 +69,17 @@ class DBSerial(threading.Thread):
         else:
             raise ConnectionError("Not connected")
 
-    def log(self, txt):
+    def log(self, txt, mode="debug"):
         if self.logger is not None:
-            self.logger.debug(" ::DBSerial:: %s" % txt)
+            if mode == "info":
+                self.logger.info(" ::DBSerial:: %s" % txt)
+            elif mode == "warn":
+                self.logger.warn(" ::DBSerial:: %s" % txt)
+                self.data['lastserialwarn']=txt
+            else:
+                self.logger.debug(" ::DBSerial:: %s" % txt)
         else:
-            print(txt)
+            print("%s: %s" %(mode,txt))
 
     def createRRD(self):
         # These settings create a ~12MB file
@@ -96,14 +102,14 @@ class DBSerial(threading.Thread):
         )
         if not os.path.isfile(self.RRD_BU_FILE):
             self.dumpRRDBUFile()
-            self.log("Copied blank RRD to disk file")
+            self.log("Copied blank RRD to disk file", 'warn')
 
     def dumpRRDBUFile(self):
         try:
             shutil.copyfile(self.RRD_RAM_FILE, self.RRD_BU_FILE)
             return True
         except Exception as e:
-            self.log("Failed to dump RAM RRD file to disk: %s" % e)
+            self.log("Failed to dump RAM RRD file to disk: %s" % e, 'warn')
         return False
 
     def loadRRDBUFile(self):
@@ -111,7 +117,7 @@ class DBSerial(threading.Thread):
             shutil.copyfile(self.RRD_BU_FILE, self.RRD_RAM_FILE)
             return True
         except Exception as e:
-            self.log("Failed to load RRD disk file to RAM: %s" % e)
+            self.log("Failed to load RRD disk file to RAM: %s" % e, 'warn')
         return False
 
     def updateRRDFile(self):
@@ -136,7 +142,7 @@ class DBSerial(threading.Thread):
                 self.log("Flush complete")
 
         except Exception as e:
-            self.log("Failed to open sensor port : %s" % e)
+            self.log("Failed to open sensor port : %s" % e, 'warn')
             self.ph = None
             return False
         return self.ph
@@ -167,7 +173,7 @@ class DBSerial(threading.Thread):
                   self.data[d[:2]] = d[3:8]
               self.log("Read data: %s" %self.data)
             except Exception as e:
-              self.log("Exception reading data.. %s" %e)
+              self.log("Exception reading data.. %s" %e, 'warn')
               self.log(traceback.format_exc())
               self.temp = -2
               self.humid = -2
@@ -235,7 +241,7 @@ class DBSerial(threading.Thread):
                                     self.dbpi._identifier, self.data
                                 )
                         except Exception as e:
-                            self.log("Failed to read or send data in run loop : %s" % e)
+                            self.log("Failed to read or send data in run loop : %s" % e, 'warn')
                             self.log(traceback.format_exc())
                     else:
                         time.sleep(0.5)
@@ -254,7 +260,7 @@ class DBSerial(threading.Thread):
         self.close()
 
     def stop(self):
-        self.log("Stopping the DBSerial thread")
+        self.log("Stopping the DBSerial thread", 'warn')
         self.done = True
     
 

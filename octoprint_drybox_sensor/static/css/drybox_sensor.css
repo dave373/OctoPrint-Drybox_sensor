@@ -52,8 +52,70 @@
   padding: 1em;
 }
 
-img #drybox-graph-image {
-  display: none;
-  width: 100%;
-  height: 100%;
+#drybox_graph_close {
+    float: right;
+    position: relative;
+    top: -1em;
 }
+
+.drybox-ext-sensor {
+    width: 50%;
+    display: flex;
+    height: 2em;
+    margin: auto;
+}
+
+.drybox-ext-sensor label {
+    flex: 1 1 auto;
+    min-width: fit-content;
+    text-align: right;
+    font-size: 1.1em;
+    align-content: center;
+}
+
+.drybox-ext-sensor span {
+    flex: 0 1 auto;
+    text-align: center;
+    margin: 0.1em 1em;
+}
+
+
+.drybox-graph-input {
+    width: 100%;
+    display: flex;
+    min-height: 2em;
+}
+
+.drybox-graph-input div {
+    flex: 0 1 auto;
+    display: flex;
+    margin: 1em 1.5em;
+}
+
+.drybox-graph-input span {
+    flex: 0 1 auto;
+    text-align: center;
+}
+
+.drybox-graph-input input {
+    flex: 1 1 auto;
+    max-height: 1.3em;
+}
+
+.drybox-graph-input button {
+    margin: 0px;
+    height: fit-content;
+}
+
+
+.drybox-graph-input label {
+    flex: 1 0 auto;
+    min-width: fit-content;
+    text-align: right;
+    font-size: 1.1em;
+    align-content: center;
+}
+
+
+
+
