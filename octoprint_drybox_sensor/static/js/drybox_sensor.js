@@ -15,17 +15,18 @@ $(function() {
         
         self.dryboxTemp = ko.observable();
         self.dryboxHumid = ko.observable();
-        self.dryboxHistory = ko.observable();
         self.dryboxExtTemp = ko.observable();
         self.dryboxExtHumid = ko.observable();
         
+        self.dryboxCustomSpan = ko.observable();
+        self.dryboxCustomStart = ko.observable();
         //console.log("DRYBOX SETTINGS!!!!!");
         //console.log(self.settings);
         //console.log(self.settingsViewModel);
 
         self.onDataUpdaterPluginMessage = function (plugin, data) {
-          console.log("Drybox sensor data update : " + plugin);
-          console.log(data);
+          //console.log("Drybox sensor data update : " + plugin);
+          //console.log(data);
           //for (d in data) {
           //  console.log(d + " : " + data[d]);
 	        //}
@@ -87,40 +88,6 @@ $(function() {
           }
         }
         
-        self.printTextHistory = function() {
-            html = "<ul class='drybox-histlist'>";
-            var textskip = Math.floor(data.history.length/50);
-            var count = 0;
-            for (h in data.history) {
-              var d = new Date(data.history[h]['ts']*1000);
-              if (count%textskip == 0) {
-                 
-                  html += "<li>" + d.toLocaleString() + "  ";
-                  tclass = "";
-                  if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_error())) {
-                    tclass = "drybox_error";
-                  }
-                  else if (data.history[h]['temp'] > parseInt(self.settings.settings.plugins.drybox_sensor.temp_warn())) {
-                    tclass = "drybox_warn"; 
-                  }
-                  
-                  html += "<b class='" + tclass + "'>" + _.sprintf("%3.1f&deg;C", data.history[h]['temp']) + "</b>";
-                  hclass = "";
-                  if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_error()) {
-                    hclass = "drybox_error";
-                  }
-                  else if (data.history[h]['humid'] > self.settings.settings.plugins.drybox_sensor.humid_warn()) {
-                    hclass = "drybox_warn";
-                  }
-                                    html += "<b class='" + hclass + "'>" + _.sprintf("%3.1f%%", data.history[h]['humid']) + "</b></li>\n";
-              }
-              count++;
-            }
-            html += "</ul>"
-            $('#drybox-history').html(html);
-        }
-       
-
         self.onBeforeBinding = function() {
           //self.settings = self.global_settings.settings.plugins.drybox_sensor;
           console.log("DRYBOX: On Before Binding : " + self.global_settings);
@@ -157,16 +124,31 @@ $(function() {
 	    self.dryboxGraphTimeSpan = function(event) {
             var start = 0;
             var span = 0; 
-            if (event == "custom") {
-                console.log("Custom time.... WIP");
-                start = $('#db_customStart').val();
-                span = $('#db_custoomSpan').val();
+            event.stopPropagation();	   
+            if (event.target.value == "select_custom") {
+                // Just show the custom div
+                $('#drybox_custom_timespan').show();
+                return;
             }
             else {
-                event.stopPropagation();	   
+                $('#drybox_custom_timespan').hide();
+            }
+            console.log("Drybox graph time selected: " + event.target);
+            if (event.target.value == "custom") {
+
+                start = $('#db_custom_start').val();
+                span = $('#db_custom_span').val();
+            }
+            else {
                 start = 0;
                 span = event.target.value;
             }
+            self.getGraphData(start, span);
+        }
+
+
+
+        self.getGraphData = function(start, span) {
             console.log("Graphing: start = " + start + "  Span = " + span);
             var canvas = document.getElementById("drybox-graph");
             var dtype = "AVERAGE";
@@ -219,7 +201,7 @@ $(function() {
             var MIN_SCALE = Math.floor(minv-(minv%5));
             
             var LABEL_WIDTH=60;
-            var LABEL_HEIGHT=15;
+            var LABEL_HEIGHT=20;
 
             var graph_height = canvas.height - LABEL_HEIGHT;
             var graph_width = canvas.width - LABEL_WIDTH;
@@ -227,10 +209,11 @@ $(function() {
             context.clearRect(0, 0, canvas.width, canvas.height);
             context.moveTo(0, 0);
             // setup colours and fill for each plot (TI, TE, HI, HE)
-            var colours=[["#FF0000","rgba(255, 0, 0, 0.1"],["#884400","rgba(128,64,0,0.1"],["#0000FF","rgba(0,0,255,0.1)"],["#004488","rgba(0,64,128,0.1"]];
+            var colours=[["#FF0000","rgba(255, 0, 0, 0.1","Int Temp"],["#884400","rgba(128,64,0,0.1","Ext Temp"],["#0000FF","rgba(0,0,255,0.1)","Int Humidity"],["#004488","rgba(0,64,128,0.1","Ext Humidity"]];
             // Work out the timebase...  oldest on left so 0 = tdata[0][1]
             var tb_ratio = (tspan / graph_width); 
             //draw the graph line for each data series
+            var labelpositions = [];
           
             for (var di = 0; di<4 ; di++) {
                 var name = self.tdata[1][di];
@@ -239,7 +222,18 @@ $(function() {
                 context.strokeStyle = colours[di][0];
                 for(var i = 0; i < self.tdata[2].length; i++){
                     if (self.tdata[2][i][di] != null) {
-                        var vertpx = canvas.height - (graph_height * (self.tdata[2][i][di]-MIN_SCALE) / (MAX_SCALE-MIN_SCALE))-LABEL_HEIGHT;
+                        vertpx = canvas.height - (graph_height * (self.tdata[2][i][di]-MIN_SCALE) / (MAX_SCALE-MIN_SCALE))-LABEL_HEIGHT;
+                        if (labelpositions.length == di) {
+                            for (var lpi in labelpositions) {
+                                var lp = labelpositions[lpi];
+                                console.log("previous pos=" + lp + ", newpos=" + vertpx);
+                                while (Math.abs(vertpx - lp) < 20) {
+                                    vertpx += (vertpx < lp ? -1 : 1);
+                                    console.log("vertpx moved to " + vertpx);
+                                }
+                            }
+                            labelpositions.push(vertpx);
+                        }
                         context.lineTo((i * ts_step)/tb_ratio, vertpx); 
                         if (i%100 == 0) {
                             console.log("Data[" + i + "][" + self.tdata[1][di] + "] = " + self.tdata[2][i][di] + "  LINE TO: " + (graph_width - (i * ts_step)/tb_ratio).toFixed(1) + "," + vertpx.toFixed(1));
@@ -265,7 +259,16 @@ $(function() {
                 */
             }
            
-
+            // Put Legend text to height of leftmost graph point
+            for (var di = 0; di < 4; di++){
+                context.font = "18px arial";
+                let txt = context.measureText(colours[di][2]);
+                context.fillStyle = colours[di][1];
+                context.fillRect(0,labelpositions[di]+7,txt.width+6,-25);
+                context.fillStyle = colours[di][0];
+                context.fillText(colours[di][2],3,labelpositions[di]);
+                
+            }
             //outline frame
             context.strokeStyle = "#222222";
             context.strokeRect(0, 0, canvas.width - LABEL_WIDTH, graph_height);
@@ -301,20 +304,32 @@ $(function() {
                  
                  context.moveTo((canvas.width-LABEL_WIDTH)/(markcount) * mindex, 0);
                  context.lineTo((canvas.width-LABEL_WIDTH)/(markcount) * mindex, graph_height);
-                 context.font = "14px serif";
+                 context.font = (LABEL_HEIGHT-1) + "px serif";
                  context.fillStyle = "black";
                  var mts = (start_ts+(tspan/markcount*mindex))*1000;
                  console.log("Time Marker: " + mindex + " TS:" + mts);
                  var dt = new Date(mts);
                  var dstr = dt.getHours() + ":" + (dt.getMinutes() > 9 ? dt.getMinutes() : "0" + dt.getMinutes());   
                  if (tspan > 100000) { // More than a day
-                    var dstr = (dt.getDate() + 1) + "/" + (dt.getMonth() + 1) + " " + dt.getHours() > 9 ? dt.getHours() : "0" + dt.getHours() + ":00";   
+                    dstr = (dt.getDate() + 1) + "/";
+                    dstr += (dt.getMonth() + 1) + " ";
+                    dstr += dt.getHours() > 9 ? dt.getHours() : "0" + dt.getHours();
+                    dstr += ":00";   
                  }
                  console.log("Marker String: " + dstr);
-                 context.fillText(dstr,(canvas.width-LABEL_WIDTH)/markcount * mindex, canvas.height-5);	 
+                 context.fillText(dstr,(canvas.width-LABEL_WIDTH)/markcount * mindex, canvas.height-2, LABEL_WIDTH-10);	 
              
             }
             context.stroke();
+            
+            // Fill title text
+            sdt = new Date(start_ts*1000);
+            edt = new Date(end_ts*1000);
+            now_e = new Date().valueOf()/1000;
+            var tstr = "From " + sdt.toLocaleString(); 
+            tstr += " to " + edt.toLocaleString();
+            $('#drybox_graph_title').html(tstr);
+
         }
     }
 

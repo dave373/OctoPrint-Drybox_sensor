@@ -29,12 +29,8 @@ class DryBoxSensorPlugin(
 
 
     def on_event(self, event, payload):
-        if event == "UserLoggedIn" and self.serialNode is not None:
-            # self._logger.info("Setting send_history to True")
-            self.serialNode.send_history = True
-        else:
-            self._logger.debug("EVENT: %s,  PAYLOAD: %s" % (event, payload))
-            self._plugin_manager.send_plugin_message(self._identifier, payload)
+        self._logger.debug("EVENT: %s,  PAYLOAD: %s" % (event, payload))
+        self._plugin_manager.send_plugin_message(self._identifier, payload)
 
     def get_api_commands(self):
         return dict(graph_tspan=["tspan","start","dtype","count"],force_save=[])

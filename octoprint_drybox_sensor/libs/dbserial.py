@@ -161,7 +161,7 @@ class DBSerial(threading.Thread):
             self.humid = random.random() * 50 + 10
             self.ts = time.time()
         else:
-            self.log("Waiting for data...")
+            #self.log("Waiting for data...")
             try:
               dstr = self.ph.readline().decode()
               if dstr == "":
@@ -171,7 +171,7 @@ class DBSerial(threading.Thread):
               self.data['TS'] = time.time()
               for d in data:
                   self.data[d[:2]] = d[3:8]
-              self.log("Read data: %s" %self.data)
+              #self.log("Read data: %s" %self.data)
             except Exception as e:
               self.log("Exception reading data.. %s" %e, 'warn')
               self.log(traceback.format_exc())
@@ -198,27 +198,34 @@ class DBSerial(threading.Thread):
             for dl in traceback.format_exc().split('\n'):
                 self.log(dl)
         return results
-       
-    def getEpochFromSpan(self, span, start=None):
-        tspan = None
-        if 'h' in span:
-            tspan = timedelta(hours=int(span.strip('h')))
-        elif 'd' in span:
-            tspan = timedelta(days=int(span.strip('d')))
-        elif 'w' in span:
-            tspan = timedelta(weeks=int(span.strip('w')))
+      
+    def get_delta_from_str(self,dstr):
+        delta = None
+        if 'h' in dstr:
+            delta = timedelta(hours=int(dstr.strip('h')))
+        elif 'd' in dstr:
+            delta = timedelta(days=int(dstr.strip('d')))
+        elif 'w' in dstr:
+            delta = timedelta(weeks=int(dstr.strip('w')))
         else:
             try:
-                tspan = timedelta(minutes=int(span))
+                delta = timedelta(minutes=int(dstr))
             except Exception:
                 pass
-        if tspan is None:
+        return delta
+
+
+    def getEpochFromSpan(self, span, start=None):
+        dspan = self.get_delta_from_str(span)
+        if dspan is None:
             # default to 1 day
-            tspan = timedelta(days=1)
-        start_dt = datetime.now()-tspan
+            dspan = timedelta(days=1)
+        
+        start_dt = datetime.now()-dspan
         if start is not None and start != 0:
-            start_dt = datetime.fromtimestamp(start) # Assume that start is suplied as an epoch
-        end_dt = start_dt + tspan
+            dstart = self.get_delta_from_str(start)
+            start_dt = datetime.now() - dstart - dspan
+        end_dt = start_dt + dspan
         return start_dt.timestamp(), end_dt.timestamp()
 
     def run(self):

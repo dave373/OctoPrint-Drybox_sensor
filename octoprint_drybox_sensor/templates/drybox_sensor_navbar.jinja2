@@ -18,21 +18,16 @@
 	  <label for="db1d">1 days</label><input id="db1d" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1d"/>
 	  <label for="db6h">6 hours</label><input id="db6h" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="6h"/>
 	  <label for="db1h">1 hour</label><input id="db1h" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1h"/>
+	  <label for="dbcts">Custom</label><input id="dbcts" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="select_custom"/>
 	</div>
-    <div class="drybox-graph-input">
-        <div><label for="db_customSpan">Span xxx[w, d, h]</label><input id="db_custom_span" class="input-block-level" type="text" data-bind="value: customspan" value=""/></div>
-	    <div><label for="db_customStart">Start X[m,w,d]</label><input id=db_custom_start" class="input-block-level" type="text" data-bind="value: customStart" value=""/>
-        <button class="btn btn-primary" data-bind="click: function(data, event) {dryboxGraphTimeSpan('custom')}">{{ _('Go') }}</button></div>
+    <div id="drybox_custom_timespan" class="drybox-graph-input" style="display:none;">
+        <div><label for="db_custom_span">Span xxx[w, d, h]</label><input id="db_custom_span" class="input-block-level" type="text" data-bind="value: dryboxCustomSpan" value=""/></div>
+	    <div><label for="db_custom_start">Start X[m,w,d]</label><input id="db_custom_start" class="input-block-level" type="text" data-bind="value: dryboxCustomStart" value=""/>
+        <button id="drybox_custom_plot" class="db_btn" value="custom" data-bind="click: function() {dryboxGraphTimeSpan(event)}">{{ _('Plot') }}</button></div>
+
     </div>
-    
-  	<div id="drybox-history-scroll" style="display:none;">
-	  <div id="drybox-history" data-bind="attr: {html: dryboxHistory()}">No Sensor History Yet</div>
-  	</div>
-	<canvas id="drybox-graph"></canvas>
-    <div id="drybox-graph-legend">
-        <div style="color:blue;">Int Humidity</div>
-        <div style="color:red;">Int Temp</div>
-        <div style="color:#0088FF;">Ext Humidity</div>
-        <div style="color:#FF8800;">Ext Temp</div>
+    <div>
+        <div id="drybox_graph_title"></div>
+	    <canvas id="drybox-graph"></canvas>
     </div>
 </div>
