@@ -125,7 +125,7 @@
     max-height: 1.3em;
 }
 
-.drybox-graph-input button {
+button#drybox_custom_plot {
     margin: 0px;
     height: fit-content;
 }

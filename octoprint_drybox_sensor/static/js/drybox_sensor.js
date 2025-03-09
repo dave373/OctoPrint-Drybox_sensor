@@ -141,6 +141,7 @@ $(function() {
             self.consolelog("Drybox graph time selected: " + event.target,10);
             if (event.target.value == "custom") {
 
+                $('#dbcts').addClass('db_active');
                 start = $('#db_custom_start').val();
                 span = $('#db_custom_span').val();
             }
