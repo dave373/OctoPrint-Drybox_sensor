@@ -27,7 +27,6 @@ class DryBoxSensorPlugin(
         self.serialNode.stop()
         self._logger.debug("Sent stop to serial thread")
 
-
     def on_event(self, event, payload):
         self._logger.debug("EVENT: %s,  PAYLOAD: %s" % (event, payload))
         self._plugin_manager.send_plugin_message(self._identifier, payload)
@@ -38,8 +37,13 @@ class DryBoxSensorPlugin(
     def on_api_command(self, command, data):
         # import flask
         if command == "graph_tspan":
-            self._logger.info("Tspan set to %s:" % data)
-            data = self.serialNode.get_history_data(data["tspan"],data['start'],data['dtype'], data['count'])
+            self._logger.debug("Tspan set to %s:" % data)
+            data = list(self.serialNode.get_history_data(data["tspan"],data['start'],data['dtype'], data['count']))
+            try:
+                data.append(self._logger.level)
+            except Exception as e:
+                self._logger.info("logger level.. exception:%s  dir(): %s" %(e,dir(self._logger)))
+
             return flask.jsonify(data)
         if command == "force_save":
             self.logger.info("Forcing an RRD Dump")
@@ -76,19 +80,9 @@ class DryBoxSensorPlugin(
         self._logger.info("Settings saved.. data: %s" % data)
         if "port" in data:
             self.serialNode.stop()
-            self.serialNode = self.serialNode = DBSerial(data["port"], self)
+            self.serialNode = DBSerial(data["port"], self)
             self.serialNode.start()
             self._logger.info("Serial reader restarted with new port")
-        #if "hist_length" in data:
-        #    self.serialNode.hist_length = int(data["hist_length"])
-        #if "hist_delay" in data:
-        #    if "m" in data["hist_delay"]:
-        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 60
-        #    elif "h" in data["hist_delay"]:
-        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("m")) * 3600
-        #    else:
-        #        self.serialNode.hist_delay = int(data["hist_delay"].strip("s"))
-
         self._plugin_manager.send_plugin_message(self._identifier, dict())
         return diff
 
@@ -107,7 +101,7 @@ class DryBoxSensorPlugin(
 
     def get_template_configs(self):
         return [
-            dict(type="navbar", custom_bindings=False),
+            #dict(type="navbar", custom_bindings=False),
             dict(type="settings", custom_bindings=False),
         ]
 
@@ -115,7 +109,6 @@ class DryBoxSensorPlugin(
         self._logger.info("Get Assets accessed")
         return dict(js=["js/drybox_sensor.js"], css=["css/drybox_sensor.css"])
 
-
-__plugin_name__ = "DryBox Sensor"
+__plugin_name__ = "Drybox Sensor"
 __plugin_pythoncompat__ = ">=3.7,<4"
 __plugin_implementation__ = DryBoxSensorPlugin()

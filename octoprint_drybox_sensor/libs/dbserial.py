@@ -209,7 +209,7 @@ class DBSerial(threading.Thread):
             delta = timedelta(weeks=int(dstr.strip('w')))
         else:
             try:
-                delta = timedelta(minutes=int(dstr))
+                delta = timedelta(minutes=int(dstr.strip('m')))
             except Exception:
                 pass
         return delta

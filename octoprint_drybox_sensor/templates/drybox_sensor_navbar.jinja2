@@ -1,33 +1,34 @@
 <div class="navbar-text" data-bind="click: function() { onShowHideDryBox('open')}">
   <b>DryBox:</b>
-  <span id="drybox-temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
-  <span id="drybox-humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
+  <span id="drybox_temp" data-bind="attr: {html: dryboxTemp()}">temp</span>
+  <span id="drybox_humid" data-bind="attr: {html: dryboxHumid()}">humid</span>
 </div>  
-<div id="drybox-history-div" style="display:none;" onclick="console.log('Nope');"> 
+<div id="drybox_history_div" style="display:none;" onclick="console.log('Nope');"> 
     <button id="drybox_graph_close" data-bind="click: function() {onShowHideDryBox('close')}" class="btn">Close</button>
     <div class="drybox-ext-sensor">
-        <label for="drybox-ext-temp">External Sensor Current:</label>
-        <span id="drybox-ext-temp" data-bind="attr: {html: dryboxExtTemp()}">temp</span>
-        <span id="drybox-ext-humid" data-bind="attr: {html: dryboxExtHumid()}">humid</span></p>
+        <label for="drybox_ext_temp">External Sensor:</label>
+        <span id="drybox_ext_temp" data-bind="attr: {html: dryboxExtTemp()}">temp</span>
+        <span id="drybox_ext_humid" data-bind="attr: {html: dryboxExtHumid()}">humid</span></p>
     </div>
-   	<div id="drybox-tspan" class="drybox-graph-input">
-	  <label for="db10w">10 weeks</label><input id="db10w" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="10w"/>
-	  <label for="db2w">2 weeks</label><input id="db2w" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="2w"/>
- 	  <label for="db1w">1 week</label><input id="db1w" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1w"/>
-	  <label for="db3d">3 days</label><input id="db3d" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="3d"/>
-	  <label for="db1d">1 days</label><input id="db1d" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1d"/>
-	  <label for="db6h">6 hours</label><input id="db6h" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="6h"/>
-	  <label for="db1h">1 hour</label><input id="db1h" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="1h"/>
-	  <label for="dbcts">Custom</label><input id="dbcts" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" type="radio" name="timespan" value="select_custom"/>
+   	<div id="drybox_tspan" class="drybox-graph-input" data-bind="click: function(data, event) {dryboxGraphTimeSpan(event)}" data-toggle="buttons-radio">
+	  <button id="db10w" class="btn" type="button" name="timespan" value="10w">10 weeks</button>
+	  <button id="db2w" class="btn" type="button" name="timespan" value="2w">2 weeks</button>
+ 	  <button id="db1w" class="btn" type="button" name="timespan" value="1w">1 week</button>
+	  <button id="db3d" class="btn" type="button" name="timespan" value="3d">3 days</button>
+	  <button id="db1d" class="btn" type="button" name="timespan" value="1d">1 days</button>
+	  <button id="db6h" class="btn" type="button" name="timespan" value="6h">6 hours</button>
+	  <button id="db1h" class="btn" type="button" name="timespan" value="1h">1 hour</button>
+	  <button id="dbcts" class="btn" type="button" name="timespan" value="select_custom">Custom</button>
 	</div>
     <div id="drybox_custom_timespan" class="drybox-graph-input" style="display:none;">
         <div><label for="db_custom_span">Span xxx[w, d, h]</label><input id="db_custom_span" class="input-block-level" type="text" data-bind="value: dryboxCustomSpan" value=""/></div>
 	    <div><label for="db_custom_start">Start X[m,w,d]</label><input id="db_custom_start" class="input-block-level" type="text" data-bind="value: dryboxCustomStart" value=""/>
-        <button id="drybox_custom_plot" class="db_btn" value="custom" data-bind="click: function() {dryboxGraphTimeSpan(event)}">{{ _('Plot') }}</button></div>
+        <button id="drybox_custom_plot" class="btn btn-primary" value="custom" data-bind="click: function() {dryboxGraphTimeSpan(event)}">{{ _('Plot') }}</button></div>
 
     </div>
     <div>
+        <div id="drybox_spinner" style="display:none;"></div>
         <div id="drybox_graph_title"></div>
-	    <canvas id="drybox-graph"></canvas>
+	    <canvas id="drybox_graph"></canvas>
     </div>
 </div>
