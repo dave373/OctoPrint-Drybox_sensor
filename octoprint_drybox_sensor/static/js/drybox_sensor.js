@@ -126,7 +126,6 @@ $(function() {
             var start = 0;
             var span = 0; 
             event.stopPropagation(); 
-            console.log(event.target);
             $('#drybox_tspan button').removeClass('db_active');
             $(event.target).addClass('db_active');
             if (event.target.value == "select_custom") {
